@@ -1,172 +1,299 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Anti-Chat - Login / Signup</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" href="https://i.ibb.co/ZLgFZqz/null-god-icon.png" />
-  <style>
-    * {
-      margin: 0; padding: 0; box-sizing: border-box;
-    }
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #0d0d0d;
-      color: #00ffcc;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      overflow: hidden;
-    }
-    .container {
-      width: 380px;
-      background: #111;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
-      position: relative;
-      overflow: hidden;
-    }
-    h2 {
-      text-align: center;
-      margin-bottom: 25px;
-      color: #00ffff;
-    }
-    form {
-      display: flex;
-      flex-direction: column;
-      transition: transform 0.4s ease-in-out;
-    }
-    input {
-      padding: 10px;
-      margin-bottom: 15px;
-      border: none;
-      border-radius: 5px;
-      background: #222;
-      color: #00ffcc;
-      font-size: 15px;
-    }
-    input:focus {
-      outline: 2px solid #00cc99;
-    }
-    button {
-      background-color: #00ffcc;
-      color: #000;
-      border: none;
-      padding: 12px;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-    button:hover {
-      background-color: #00cc99;
-    }
-    .switch {
-      text-align: center;
-      margin-top: 15px;
-      font-size: 0.9em;
-    }
-    .switch a {
-      color: #ff007f;
-      text-decoration: none;
-      font-weight: bold;
-      margin-left: 5px;
-    }
-    .form-wrapper {
-      display: flex;
-      width: 200%;
-    }
-    .form-section {
-      width: 100%;
-      padding-right: 15px;
-    }
-    .container.active .form-wrapper {
-      transform: translateX(-50%);
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AntiChat - Login & Chat</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #121212;
+    color: #00ffcc;
+    margin: 0; padding: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .container {
+    flex: 1;
+    max-width: 600px;
+    margin: auto;
+    background: #222;
+    border-radius: 8px;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .tab {
+    cursor: pointer;
+    padding: 10px 20px;
+    color: #00ffcc;
+    border-bottom: 2px solid transparent;
+    transition: border-color 0.3s;
+    user-select: none;
+  }
+  .tab.active {
+    border-bottom: 2px solid #00ffcc;
+    font-weight: bold;
+  }
+  form {
+    display: none;
+    flex-direction: column;
+  }
+  form.active {
+    display: flex;
+  }
+  label {
+    margin: 8px 0 4px;
+  }
+  input {
+    padding: 8px;
+    border: none;
+    border-radius: 4px;
+    outline: none;
+  }
+  button {
+    margin-top: 15px;
+    padding: 10px;
+    background: #00ffcc;
+    color: black;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  button:hover {
+    background: #00cc99;
+  }
+  #chat-area {
+    flex: 1;
+    display: none;
+    flex-direction: column;
+    border-top: 1px solid #333;
+    margin-top: 15px;
+    overflow: hidden;
+  }
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    border-radius: 4px;
+    background: #111;
+    margin-bottom: 10px;
+    font-family: monospace;
+  }
+  #new-message {
+    display: flex;
+  }
+  #new-message input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 4px 0 0 4px;
+    border: none;
+  }
+  #new-message button {
+    border-radius: 0 4px 4px 0;
+  }
+  .msg {
+    margin-bottom: 8px;
+  }
+  .msg strong {
+    color: #ff66cc;
+  }
+</style>
 </head>
 <body>
-
-<div class="container" id="formContainer">
-  <div class="form-wrapper">
-
-    <!-- Sign Up -->
-    <div class="form-section">
-      <h2>Sign Up</h2>
-      <form id="signupForm" onsubmit="handleSignup(event)">
-        <input type="text" placeholder="Name" required name="name" />
-        <input type="email" placeholder="Email" required name="email" />
-        <input type="password" placeholder="Password" required name="password" />
-        <input type="password" placeholder="Confirm Password" required name="confirm" />
-        <button type="submit">Sign Up</button>
-        <div class="switch">Already have an account?<a href="#" onclick="toggleForms()">Login</a></div>
-      </form>
+  <div class="container">
+    <h1>AntiChat</h1>
+    <div class="tabs">
+      <div class="tab active" id="tab-login">Login</div>
+      <div class="tab" id="tab-signup">Sign Up</div>
     </div>
 
-    <!-- Login -->
-    <div class="form-section">
-      <h2>Login</h2>
-      <form id="loginForm" onsubmit="handleLogin(event)">
-        <input type="email" placeholder="Email" required name="email" />
-        <input type="password" placeholder="Password" required name="password" />
-        <button type="submit">Login</button>
-        <div class="switch">Don't have an account?<a href="#" onclick="toggleForms()">Sign Up</a></div>
+    <form id="login-form" class="active">
+      <label for="login-email">Email:</label>
+      <input type="email" id="login-email" required />
+      <label for="login-password">Password:</label>
+      <input type="password" id="login-password" required />
+      <button type="submit">Login</button>
+    </form>
+
+    <form id="signup-form">
+      <label for="signup-name">Name:</label>
+      <input type="text" id="signup-name" required />
+      <label for="signup-email">Email:</label>
+      <input type="email" id="signup-email" required />
+      <label for="signup-password">Password:</label>
+      <input type="password" id="signup-password" required />
+      <label for="signup-password-confirm">Confirm Password:</label>
+      <input type="password" id="signup-password-confirm" required />
+      <button type="submit">Sign Up</button>
+    </form>
+
+    <div id="chat-area">
+      <div id="messages"></div>
+      <form id="new-message">
+        <input type="text" placeholder="Type a message..." required autocomplete="off" />
+        <button type="submit">Send</button>
       </form>
     </div>
-
   </div>
-</div>
 
 <script>
-  const container = document.getElementById('formContainer');
+  const tabLogin = document.getElementById('tab-login');
+  const tabSignup = document.getElementById('tab-signup');
+  const loginForm = document.getElementById('login-form');
+  const signupForm = document.getElementById('signup-form');
+  const chatArea = document.getElementById('chat-area');
+  const messagesDiv = document.getElementById('messages');
+  const newMessageForm = document.getElementById('new-message');
+  const newMessageInput = newMessageForm.querySelector('input');
 
-  function toggleForms() {
-    container.classList.toggle('active');
+  let currentUser = null;
+
+  tabLogin.onclick = () => {
+    tabLogin.classList.add('active');
+    tabSignup.classList.remove('active');
+    loginForm.classList.add('active');
+    signupForm.classList.remove('active');
+  };
+
+  tabSignup.onclick = () => {
+    tabSignup.classList.add('active');
+    tabLogin.classList.remove('active');
+    signupForm.classList.add('active');
+    loginForm.classList.remove('active');
+  };
+
+  async function fetchUsers() {
+    const res = await fetch('/api/users');
+    if (!res.ok) throw new Error('Failed to fetch users');
+    return await res.json();
   }
 
-  async function handleSignup(event) {
-    event.preventDefault();
-    const form = event.target;
-    const name = form.name.value.trim();
-    const email = form.email.value.trim();
-    const password = form.password.value.trim();
-    const confirm = form.confirm.value.trim();
-
-    if (password !== confirm) return alert("Passwords do not match!");
-
-    const res = await fetch('/api/server', {
+  async function addUser(user) {
+    const res = await fetch('/api/users', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'signup', name, email, password })
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(user)
     });
-
-    const data = await res.json();
-    alert(data.message);
+    if (!res.ok) throw new Error('Failed to register user');
+    return await res.json();
   }
 
-  async function handleLogin(event) {
-    event.preventDefault();
-    const form = event.target;
-    const email = form.email.value.trim();
-    const password = form.password.value.trim();
+  async function fetchMessages() {
+    const res = await fetch('/api/messages');
+    if (!res.ok) throw new Error('Failed to fetch messages');
+    return await res.json();
+  }
 
-    const res = await fetch('/api/server', {
+  async function addMessage(msg) {
+    const res = await fetch('/api/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'login', email, password })
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(msg)
     });
+    if (!res.ok) throw new Error('Failed to send message');
+    return await res.json();
+  }
 
-    const data = await res.json();
-    if (data.token) {
-      alert("Login successful!");
-      // window.location.href = "/chat-lobby.html"; // if you have one
-    } else {
-      alert(data.message || "Login failed");
+  function renderMessages(messages) {
+    messagesDiv.innerHTML = '';
+    messages.forEach(m => {
+      const el = document.createElement('div');
+      el.classList.add('msg');
+      el.innerHTML = `<strong>${m.username}:</strong> ${m.text}`;
+      messagesDiv.appendChild(el);
+    });
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }
+
+  loginForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+
+    try {
+      const users = await fetchUsers();
+      const user = users.find(u => u.email === email && u.password === password);
+      if (!user) {
+        alert('Invalid email or password');
+        return;
+      }
+      currentUser = user;
+      alert(`Welcome back, ${user.name}!`);
+      loginForm.style.display = 'none';
+      signupForm.style.display = 'none';
+      chatArea.style.display = 'flex';
+      loadMessages();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  signupForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const name = document.getElementById('signup-name').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+    const confirmPassword = document.getElementById('signup-password-confirm').value;
+
+    if (password !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+
+    try {
+      const users = await fetchUsers();
+      if (users.find(u => u.email === email)) {
+        alert('Email already registered');
+        return;
+      }
+      const newUser = await addUser({ name, email, password });
+      alert('Registration successful! You can now log in.');
+      tabLogin.click();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  newMessageForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const text = newMessageInput.value.trim();
+    if (!text) return;
+    try {
+      await addMessage({ username: currentUser.name, text });
+      newMessageInput.value = '';
+      loadMessages();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  async function loadMessages() {
+    try {
+      const messages = await fetchMessages();
+      renderMessages(messages);
+    } catch {
+      // ignore errors silently
     }
   }
-</script>
 
+  // Poll messages every 5 sec
+  setInterval(() => {
+    if (chatArea.style.display === 'flex') loadMessages();
+  }, 5000);
+</script>
 </body>
 </html>
