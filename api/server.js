@@ -1,125 +1,100 @@
-const express = require('express');
-const cors = require('cors');
-const fs = require('fs');
-const jwt = require('jsonwebtoken');
-const bodyParser = require('body-parser');
-const serverless = require('serverless-http');
-const path = require('path');
+// api/server.js
+
+const express = require("express");
+const fs = require("fs");
+const cors = require("cors");
+const path = require("path");
+const jwt = require("jsonwebtoken");
+const bodyParser = require("body-parser");
 
 const app = express();
-const router = express.Router();
+const SECRET_KEY = "nullgod-secret";
+const dataDir = path.join(__dirname, "data");
+const usersFile = path.join(dataDir, "users.json");
+const messagesFile = path.join(dataDir, "messages.json");
 
-const USERS_FILE = path.join(__dirname, 'data', 'users.json');
-const MESSAGES_FILE = path.join(__dirname, 'data', 'messages.json');
-const SECRET_KEY = 'antifiednull_super_secret';
-
+// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
-if (!fs.existsSync(path.dirname(USERS_FILE))) fs.mkdirSync(path.dirname(USERS_FILE), { recursive: true });
-if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, '[]');
-if (!fs.existsSync(MESSAGES_FILE)) fs.writeFileSync(MESSAGES_FILE, '[]');
+// Ensure data directory and files exist
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
+if (!fs.existsSync(usersFile)) fs.writeFileSync(usersFile, "{}", "utf8");
+if (!fs.existsSync(messagesFile)) fs.writeFileSync(messagesFile, "[]", "utf8");
 
-function loadUsers() {
-  return JSON.parse(fs.readFileSync(USERS_FILE));
+// Helpers
+function readJSON(file) {
+  return JSON.parse(fs.readFileSync(file, "utf8"));
+}
+function writeJSON(file, data) {
+  fs.writeFileSync(file, JSON.stringify(data, null, 2), "utf8");
 }
 
-function saveUsers(users) {
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-}
-
-function loadMessages() {
-  return JSON.parse(fs.readFileSync(MESSAGES_FILE));
-}
-
-function saveMessages(messages) {
-  fs.writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2));
-}
-
-// Middleware to verify token
-function verifyToken(req, res, next) {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ success: false, message: 'Token missing' });
-
-  try {
-    const decoded = jwt.verify(token, SECRET_KEY);
-    req.user = decoded;
-    next();
-  } catch {
-    res.status(403).json({ success: false, message: 'Invalid token' });
-  }
-}
-
-// === ROUTES ===
-
-// Sign Up
-router.post('/signup', (req, res) => {
-  const { name, email, password } = req.body;
-  const users = loadUsers();
-
-  if (users.find(u => u.email === email)) {
-    return res.json({ success: false, message: 'Email already registered' });
-  }
-
-  const newUser = { name, email, password };
-  users.push(newUser);
-  saveUsers(users);
-
-  const token = jwt.sign({ email, name }, SECRET_KEY);
-  res.json({ success: true, token, name });
+// Signup
+app.post("/api/server/signup", (req, res) => {
+  const { username, password } = req.body;
+  const users = readJSON(usersFile);
+  if (users[username]) return res.status(400).json({ error: "User exists" });
+  users[username] = { password };
+  writeJSON(usersFile, users);
+  res.json({ success: true });
 });
 
 // Login
-router.post('/login', (req, res) => {
-  const { email, password } = req.body;
-  const users = loadUsers();
-  const user = users.find(u => u.email === email && u.password === password);
-
-  if (!user) return res.json({ success: false, message: 'Invalid credentials' });
-
-  const token = jwt.sign({ email: user.email, name: user.name }, SECRET_KEY);
-  res.json({ success: true, token, name: user.name });
-});
-
-// Token verification
-router.get('/verify-token', verifyToken, (req, res) => {
-  res.json({ success: true, name: req.user.name });
+app.post("/api/server/login", (req, res) => {
+  const { username, password } = req.body;
+  const users = readJSON(usersFile);
+  if (!users[username] || users[username].password !== password) {
+    return res.status(401).json({ error: "Invalid credentials" });
+  }
+  const token = jwt.sign({ username }, SECRET_KEY);
+  res.json({ token });
 });
 
 // Get messages
-router.get('/messages', verifyToken, (req, res) => {
-  const messages = loadMessages();
-  res.json({ messages });
+app.get("/api/server/messages", (req, res) => {
+  const messages = readJSON(messagesFile);
+  res.json(messages);
 });
 
-// Post a message
-router.post('/messages', verifyToken, (req, res) => {
-  const { text } = req.body;
-  const messages = loadMessages();
-  const newMessage = {
-    id: Date.now().toString(),
-    user: req.user.name,
-    text
-  };
-  messages.push(newMessage);
-  saveMessages(messages);
-  res.json({ success: true });
+// Post message
+app.post("/api/server/messages", (req, res) => {
+  const { token, text } = req.body;
+  if (!token || !text) return res.status(400).json({ error: "Missing data" });
+
+  try {
+    const { username } = jwt.verify(token, SECRET_KEY);
+    const messages = readJSON(messagesFile);
+    const message = {
+      id: Date.now().toString(),
+      user: username,
+      text,
+      time: new Date().toLocaleString(),
+    };
+    messages.push(message);
+    writeJSON(messagesFile, messages);
+    res.json({ success: true, message });
+  } catch (err) {
+    res.status(401).json({ error: "Invalid token" });
+  }
 });
 
-// Delete a message
-router.delete('/messages/:id', verifyToken, (req, res) => {
-  const id = req.params.id;
-  const messages = loadMessages();
-  const message = messages.find(m => m.id === id);
+// Delete message
+app.post("/api/server/delete", (req, res) => {
+  const { token, id } = req.body;
+  if (!token || !id) return res.status(400).json({ error: "Missing data" });
 
-  if (!message) return res.status(404).json({ success: false, message: 'Message not found' });
-  if (message.user !== req.user.name) return res.status(403).json({ success: false, message: 'You can only delete your own messages' });
-
-  message.text = '[MESSAGE DELETED]';
-  saveMessages(messages);
-  res.json({ success: true });
+  try {
+    const { username } = jwt.verify(token, SECRET_KEY);
+    const messages = readJSON(messagesFile);
+    const index = messages.findIndex((m) => m.id === id && m.user === username);
+    if (index === -1) return res.status(403).json({ error: "Unauthorized" });
+    messages[index].text = "[MESSAGE DELETED]";
+    writeJSON(messagesFile, messages);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(401).json({ error: "Invalid token" });
+  }
 });
 
-app.use('/api/server', router);
-
-module.exports = serverless(app);
+module.exports = app;
