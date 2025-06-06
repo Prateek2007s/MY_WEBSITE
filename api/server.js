@@ -1,162 +1,122 @@
+const express = require('express');
+const serverless = require('serverless-http');
 const fs = require('fs');
 const path = require('path');
-const bcrypt = require('bcrypt');
+const cors = require('cors');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-const { parse } = require('url');
+const bodyParser = require('body-parser');
 
-const USERS_FILE = '/tmp/users.json';
-const MESSAGES_FILE = '/tmp/messages.json';
-const JWT_SECRET = 'your_super_secret_key_change_this';
+const app = express();
+const SECRET_KEY = 'supersecretkey123456'; // Change this before production!
 
-// Initialize users and messages
-let users = {};
-let messages = [];
+// Since Vercel runs in a read-only environment except /tmp, 
+// we will store files in /tmp/data instead of relative folder for writable access.
+const DATA_DIR = path.join('/tmp', 'data');
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const MESSAGES_FILE = path.join(DATA_DIR, 'messages.json');
 
-function loadData() {
-  if (fs.existsSync(USERS_FILE)) {
-    users = JSON.parse(fs.readFileSync(USERS_FILE));
-  } else {
-    fs.writeFileSync(USERS_FILE, '{}');
-  }
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
 
-  if (fs.existsSync(MESSAGES_FILE)) {
-    messages = JSON.parse(fs.readFileSync(MESSAGES_FILE));
-  } else {
-    fs.writeFileSync(MESSAGES_FILE, '[]');
-  }
+// Ensure /tmp/data directory and files exist on every cold start
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, '[]');
+if (!fs.existsSync(MESSAGES_FILE)) fs.writeFileSync(MESSAGES_FILE, '[]');
+
+// Helpers
+const readJSON = file => JSON.parse(fs.readFileSync(file, 'utf-8'));
+const writeJSON = (file, data) => fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf-8');
+
+function createToken(name) {
+  return jwt.sign({ name }, SECRET_KEY, { expiresIn: '7d' });
 }
 
-function saveUsers() {
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-}
-
-function saveMessages() {
-  fs.writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2));
-}
-
-function parseBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', chunk => body += chunk.toString());
-    req.on('end', () => {
-      try {
-        resolve(JSON.parse(body || '{}'));
-      } catch (e) {
-        reject(e);
-      }
-    });
-  });
-}
-
-function send(res, status, data) {
-  res.statusCode = status;
-  res.setHeader('Content-Type', 'application/json');
-  res.end(JSON.stringify(data));
-}
-
-function authenticate(req) {
-  const auth = req.headers['authorization'] || '';
+function verifyToken(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) return res.json({ success: false, message: 'Unauthorized' });
   const token = auth.split(' ')[1];
-  if (!token) return null;
   try {
-    return jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, SECRET_KEY);
+    req.user = decoded.name;
+    next();
   } catch {
-    return null;
+    return res.json({ success: false, message: 'Invalid token' });
   }
 }
 
-module.exports = async (req, res) => {
-  loadData();
-  const { pathname, query } = parse(req.url, true);
+// Routes
 
-  if (req.method === 'POST' && pathname === '/api/signup') {
-    const { name, email, password } = await parseBody(req);
-    if (!name || !email || !password)
-      return send(res, 400, { success: false, message: 'Missing fields' });
+app.post('/signup', (req, res) => {
+  const { name, email, password } = req.body;
+  if (!name || !email || !password) return res.json({ success: false, message: 'Name, email, and password are required' });
 
-    if (users[email])
-      return send(res, 409, { success: false, message: 'Email already registered' });
+  const users = readJSON(USERS_FILE);
+  if (users.find(u => u.email === email)) return res.json({ success: false, message: 'Email already exists' });
+  if (password.length < 8) return res.json({ success: false, message: 'Password must be at least 8 characters' });
 
-    const hashed = await bcrypt.hash(password, 10);
-    users[email] = { name, email, password: hashed };
-    saveUsers();
+  users.push({ name, email, password });
+  writeJSON(USERS_FILE, users);
+  res.json({ success: true, name, token: createToken(name) });
+});
 
-    const token = jwt.sign({ email, name }, JWT_SECRET, { expiresIn: '7d' });
-    return send(res, 200, { success: true, name, token });
-  }
+app.post('/login', (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.json({ success: false, message: 'Email and password required' });
 
-  if (req.method === 'POST' && pathname === '/api/login') {
-    const { email, password } = await parseBody(req);
-    if (!email || !password)
-      return send(res, 400, { success: false, message: 'Missing fields' });
+  const users = readJSON(USERS_FILE);
+  const user = users.find(u => u.email === email && u.password === password);
+  if (!user) return res.json({ success: false, message: 'Invalid email or password' });
 
-    const user = users[email];
-    if (!user)
-      return send(res, 404, { success: false, message: 'User not found' });
+  res.json({ success: true, name: user.name, token: createToken(user.name) });
+});
 
-    const match = await bcrypt.compare(password, user.password);
-    if (!match)
-      return send(res, 403, { success: false, message: 'Incorrect password' });
+app.get('/verify-token', verifyToken, (req, res) => {
+  res.json({ success: true });
+});
 
-    const token = jwt.sign({ email, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
-    return send(res, 200, { success: true, name: user.name, token });
-  }
+app.get('/messages', verifyToken, (req, res) => {
+  const messages = readJSON(MESSAGES_FILE);
+  res.json({ success: true, messages });
+});
 
-  if (req.method === 'GET' && pathname === '/api/verify-token') {
-    const user = authenticate(req);
-    if (!user) return send(res, 403, { success: false, message: 'Invalid token' });
-    return send(res, 200, { success: true, name: user.name });
-  }
+app.post('/messages', verifyToken, (req, res) => {
+  const { text } = req.body;
+  if (!text || text.trim() === '') return res.json({ success: false, message: 'Message text is required' });
 
-  if (req.method === 'GET' && pathname === '/api/messages') {
-    const user = authenticate(req);
-    if (!user) return send(res, 403, { success: false, message: 'Invalid token' });
+  const messages = readJSON(MESSAGES_FILE);
+  const newMessage = {
+    id: crypto.randomUUID(),
+    user: req.user,
+    text: text.trim(),
+    timestamp: Date.now()
+  };
+  messages.push(newMessage);
+  writeJSON(MESSAGES_FILE, messages);
 
-    const safeMessages = messages.map(msg => ({
-      id: msg.id,
-      user: msg.user,
-      text: msg.deleted ? '[MESSAGE DELETED]' : msg.text
-    }));
-    return send(res, 200, { success: true, messages: safeMessages });
-  }
+  res.json({ success: true });
+});
 
-  if (req.method === 'POST' && pathname === '/api/messages') {
-    const user = authenticate(req);
-    if (!user) return send(res, 403, { success: false, message: 'Invalid token' });
+app.delete('/messages/:id', verifyToken, (req, res) => {
+  const id = req.params.id;
+  let messages = readJSON(MESSAGES_FILE);
+  let found = false;
 
-    const { text } = await parseBody(req);
-    if (!text || text.trim().length === 0)
-      return send(res, 400, { success: false, message: 'Empty message' });
+  messages = messages.map(msg => {
+    if (msg.id === id && msg.user === req.user) {
+      found = true;
+      return { ...msg, text: '[MESSAGE DELETED]' };
+    }
+    return msg;
+  });
 
-    if (text.length > 500)
-      return send(res, 400, { success: false, message: 'Message too long' });
+  if (!found) return res.json({ success: false, message: 'Message not found or not authorized' });
 
-    const newMsg = {
-      id: Date.now().toString() + Math.random().toString(36).slice(2, 7),
-      user: user.name,
-      text: text.trim(),
-      deleted: false
-    };
-    messages.push(newMsg);
-    saveMessages();
-    return send(res, 200, { success: true });
-  }
+  writeJSON(MESSAGES_FILE, messages);
+  res.json({ success: true });
+});
 
-  if (req.method === 'DELETE' && pathname.startsWith('/api/messages/')) {
-    const user = authenticate(req);
-    if (!user) return send(res, 403, { success: false, message: 'Invalid token' });
-
-    const id = pathname.split('/').pop();
-    const msg = messages.find(m => m.id === id);
-    if (!msg) return send(res, 404, { success: false, message: 'Message not found' });
-    if (msg.user !== user.name)
-      return send(res, 403, { success: false, message: 'Forbidden' });
-
-    msg.text = '[MESSAGE DELETED]';
-    msg.deleted = true;
-    saveMessages();
-    return send(res, 200, { success: true });
-  }
-
-  return send(res, 404, { success: false, message: 'Route not found' });
-};
+// Export handler for Vercel
+module.exports = app;
+module.exports.handler = serverless(app);
