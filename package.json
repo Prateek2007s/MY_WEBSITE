@@ -1,7 +1,7 @@
 {
-  "name": "Anti-Chat",
+  "name": "anti-chat",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "api/server.js",
   "dependencies": {
     "bcrypt": "^5.1.0",
     "jsonwebtoken": "^9.0.0"
