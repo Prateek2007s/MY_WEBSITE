@@ -1,125 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>AntiChat - Login / Signup</title>
+  <meta charset="UTF-8" />
+  <title>AntiChat - Login & Register</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap">
   <style>
     body {
-      background-color: black;
+      margin: 0;
+      font-family: 'Share Tech Mono', monospace;
+      background: #0f0f0f;
       color: #00ffcc;
-      font-family: monospace;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
-      margin: 0;
     }
-    .wrapper {
+    .container {
       width: 400px;
       background: #111;
       padding: 20px;
-      border: 1px solid #00ffcc;
+      border: 2px solid #00ffcc;
       border-radius: 10px;
+      box-shadow: 0 0 20px #00ffcc;
     }
-    h2 {
-      text-align: center;
-      color: #00ffff;
-    }
+    h2 { text-align: center; }
     input {
       width: 100%;
-      padding: 8px;
-      margin-top: 8px;
+      margin-bottom: 12px;
+      padding: 10px;
       background: #222;
-      border: none;
-      color: #0f0;
+      border: 1px solid #00ffcc;
+      color: #fff;
     }
     button {
-      margin-top: 10px;
-      padding: 10px;
       width: 100%;
+      padding: 10px;
       background: #00ffcc;
-      color: black;
+      color: #000;
       font-weight: bold;
       cursor: pointer;
+      border: none;
     }
-    .toggle {
-      color: #888;
-      text-align: center;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-    .hidden {
-      display: none;
-    }
+    .switch { text-align: center; margin-top: 10px; cursor: pointer; color: #aaa; }
   </style>
 </head>
 <body>
-  <div class="wrapper">
-    <div id="login">
-      <h2>Login</h2>
-      <input id="login-email" type="email" placeholder="Email" />
-      <input id="login-password" type="password" placeholder="Password" />
-      <button onclick="login()">Login</button>
-      <div class="toggle" onclick="switchForm('signup')">Don't have an account? Sign Up</div>
+  <div class="container">
+    <h2 id="form-title">Register</h2>
+    <div id="register-form">
+      <input type="text" id="name" placeholder="Name">
+      <input type="email" id="reg-email" placeholder="Email">
+      <input type="password" id="reg-pass" placeholder="Password">
+      <input type="password" id="confirm-pass" placeholder="Confirm Password">
+      <button onclick="register()">Sign Up</button>
     </div>
 
-    <div id="signup" class="hidden">
-      <h2>Sign Up</h2>
-      <input id="signup-name" type="text" placeholder="Name" />
-      <input id="signup-email" type="email" placeholder="Email" />
-      <input id="signup-password" type="password" placeholder="Password" />
-      <input id="signup-confirm" type="password" placeholder="Confirm Password" />
-      <button onclick="signup()">Register</button>
-      <div class="toggle" onclick="switchForm('login')">Already have an account? Login</div>
+    <div id="login-form" style="display:none;">
+      <input type="email" id="log-email" placeholder="Email">
+      <input type="password" id="log-pass" placeholder="Password">
+      <button onclick="login()">Log In</button>
     </div>
+
+    <div class="switch" onclick="toggle()">Switch to <span id="switch-text">Login</span></div>
   </div>
 
   <script>
-    function switchForm(form) {
-      document.getElementById('login').classList.add('hidden');
-      document.getElementById('signup').classList.add('hidden');
-      document.getElementById(form).classList.remove('hidden');
+    let isLogin = false;
+
+    function toggle() {
+      isLogin = !isLogin;
+      document.getElementById('register-form').style.display = isLogin ? 'none' : 'block';
+      document.getElementById('login-form').style.display = isLogin ? 'block' : 'none';
+      document.getElementById('form-title').innerText = isLogin ? 'Login' : 'Register';
+      document.getElementById('switch-text').innerText = isLogin ? 'Register' : 'Login';
     }
 
-    async function signup() {
-      const name = document.getElementById('signup-name').value;
-      const email = document.getElementById('signup-email').value;
-      const password = document.getElementById('signup-password').value;
-      const confirm = document.getElementById('signup-confirm').value;
+    async function register() {
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('reg-email').value;
+      const pass = document.getElementById('reg-pass').value;
+      const confirm = document.getElementById('confirm-pass').value;
+      if (pass !== confirm) return alert("Passwords do not match");
 
-      if (password !== confirm) return alert('Passwords do not match');
-
-      const res = await fetch('/api/register', {
+      const res = await fetch('/api/accounts/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({ name, email, password: pass })
       });
 
       if (res.ok) {
-        alert('Registered successfully!');
-        switchForm('login');
+        alert("Registered! You can log in now.");
+        toggle();
       } else {
         const err = await res.json();
-        alert(err.error || 'Failed to register');
+        alert("Failed: " + err.message);
       }
     }
 
     async function login() {
-      const email = document.getElementById('login-email').value;
-      const password = document.getElementById('login-password').value;
+      const email = document.getElementById('log-email').value;
+      const pass = document.getElementById('log-pass').value;
 
-      const res = await fetch('/api/login', {
+      const res = await fetch('/api/accounts/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password: pass })
       });
 
       if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem('user', JSON.stringify(data));
+        const user = await res.json();
+        localStorage.setItem('user', JSON.stringify(user));
         location.href = '/arena.html';
       } else {
-        alert('Invalid login');
+        const err = await res.json();
+        alert("Failed: " + err.message);
       }
     }
   </script>
