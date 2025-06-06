@@ -2,81 +2,125 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Arena - AntiChat</title>
+  <title>AntiChat - Login/Register</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Share+Tech+Mono">
   <style>
     body {
       margin: 0;
+      font-family: 'Share Tech Mono', monospace;
       background: black;
-      color: #00ff00;
-      font-family: monospace;
+      color: #00ffcc;
       display: flex;
-      flex-direction: column;
+      justify-content: center;
+      align-items: center;
       height: 100vh;
     }
-    #chat-box {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px;
+    .wrapper {
+      width: 350px;
+      background: #111;
+      border: 1px solid #00ffcc;
+      padding: 20px;
+      box-shadow: 0 0 20px #00ffcc;
     }
-    #input-area {
-      display: flex;
+    h2 {
+      text-align: center;
+      color: #00ffcc;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
     }
     input {
-      flex: 1;
-      background: #111;
-      border: none;
-      color: #00ff00;
+      width: 100%;
       padding: 10px;
+      margin-top: 5px;
+      background: #000;
+      border: 1px solid #00ffcc;
+      color: #00ffcc;
     }
     button {
-      background: #222;
-      color: #00ff00;
+      width: 100%;
+      padding: 10px;
+      margin-top: 20px;
+      background: #00ffcc;
+      color: black;
       border: none;
-      padding: 10px 20px;
+      cursor: pointer;
     }
-    .message {
-      margin: 5px 0;
-    }
-    .username {
-      color: cyan;
+    .toggle {
+      margin-top: 15px;
+      text-align: center;
+      cursor: pointer;
+      color: #00ffff;
     }
   </style>
 </head>
 <body>
-  <div id="chat-box"></div>
-  <div id="input-area">
-    <input id="msg" placeholder="Type a message..." />
-    <button onclick="sendMsg()">Send</button>
+  <div class="wrapper" id="form-container">
+    <h2 id="form-title">Sign Up</h2>
+    <div id="signup-form">
+      <label>Name:</label><input type="text" id="name" />
+      <label>Email:</label><input type="email" id="email" />
+      <label>Password:</label><input type="password" id="password" />
+      <label>Confirm Password:</label><input type="password" id="confirm" />
+      <button onclick="signUp()">Register</button>
+    </div>
+
+    <div id="login-form" style="display:none;">
+      <label>Email:</label><input type="email" id="login-email" />
+      <label>Password:</label><input type="password" id="login-password" />
+      <button onclick="login()">Login</button>
+    </div>
+
+    <div class="toggle" onclick="toggleForm()">Switch to Login</div>
   </div>
 
   <script>
-    const box = document.getElementById('chat-box');
-    const username = localStorage.getItem('username') || 'Anonymous';
+    let isLogin = false;
 
-    async function loadMessages() {
-      const res = await fetch('/api/server/messages');
-      const messages = await res.json();
-      box.innerHTML = '';
-      messages.forEach(m => {
-        box.innerHTML += `<div class="message"><span class="username">${m.username}:</span> ${m.text}</div>`;
-      });
-      box.scrollTop = box.scrollHeight;
+    function toggleForm() {
+      isLogin = !isLogin;
+      document.getElementById('signup-form').style.display = isLogin ? 'none' : 'block';
+      document.getElementById('login-form').style.display = isLogin ? 'block' : 'none';
+      document.getElementById('form-title').innerText = isLogin ? 'Login' : 'Sign Up';
+      document.querySelector('.toggle').innerText = isLogin ? 'Switch to Sign Up' : 'Switch to Login';
     }
 
-    async function sendMsg() {
-      const msg = document.getElementById('msg').value;
-      if (!msg) return;
-      await fetch('/api/server/messages', {
+    async function signUp() {
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const confirm = document.getElementById('confirm').value;
+
+      if (password !== confirm) return alert("Passwords do not match!");
+
+      const res = await fetch('/api/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, text: msg })
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ name, email, password })
       });
-      document.getElementById('msg').value = '';
-      loadMessages();
+      if (res.ok) {
+        alert('Registered! Now login.');
+        toggleForm();
+      } else {
+        alert('Registration failed.');
+      }
     }
 
-    setInterval(loadMessages, 1500);
-    loadMessages();
+    async function login() {
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+
+      const res = await fetch('/api/users');
+      const users = await res.json();
+      const match = users.find(u => u.email === email && u.password === password);
+      if (match) {
+        localStorage.setItem('user', JSON.stringify(match));
+        window.location.href = '/arena.html';
+      } else {
+        alert('Login failed!');
+      }
+    }
   </script>
 </body>
 </html>
