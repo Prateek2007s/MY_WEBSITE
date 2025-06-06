@@ -2,107 +2,81 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>AntiChat - Login & Sign Up</title>
+  <title>Arena - AntiChat</title>
   <style>
     body {
-      font-family: monospace;
       margin: 0;
       background: black;
       color: #00ff00;
+      font-family: monospace;
       display: flex;
+      flex-direction: column;
       height: 100vh;
-      align-items: center;
-      justify-content: center;
     }
-    .container {
-      background: #111;
-      padding: 30px;
-      border: 2px solid #00ff00;
-      width: 350px;
-    }
-    input, button {
-      width: 100%;
+    #chat-box {
+      flex: 1;
+      overflow-y: auto;
       padding: 10px;
-      margin: 5px 0;
+    }
+    #input-area {
+      display: flex;
+    }
+    input {
+      flex: 1;
+      background: #111;
       border: none;
+      color: #00ff00;
+      padding: 10px;
+    }
+    button {
       background: #222;
       color: #00ff00;
+      border: none;
+      padding: 10px 20px;
     }
-    .toggle {
+    .message {
+      margin: 5px 0;
+    }
+    .username {
       color: cyan;
-      text-align: center;
-      margin-top: 10px;
-      cursor: pointer;
     }
-    h2 { text-align: center; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2 id="form-title">Sign Up</h2>
-    <div id="signup-form">
-      <input type="text" id="name" placeholder="Name" />
-      <input type="email" id="email" placeholder="Email" />
-      <input type="password" id="password" placeholder="Password" />
-      <input type="password" id="confirm" placeholder="Confirm Password" />
-      <button onclick="signup()">Register</button>
-    </div>
-
-    <div id="login-form" style="display:none">
-      <input type="email" id="login-email" placeholder="Email" />
-      <input type="password" id="login-pass" placeholder="Password" />
-      <button onclick="login()">Login</button>
-    </div>
-
-    <div class="toggle" onclick="toggleForm()">Switch to Login</div>
+  <div id="chat-box"></div>
+  <div id="input-area">
+    <input id="msg" placeholder="Type a message..." />
+    <button onclick="sendMsg()">Send</button>
   </div>
 
   <script>
-    let showLogin = false;
-    function toggleForm() {
-      showLogin = !showLogin;
-      document.getElementById('signup-form').style.display = showLogin ? 'none' : 'block';
-      document.getElementById('login-form').style.display = showLogin ? 'block' : 'none';
-      document.getElementById('form-title').textContent = showLogin ? 'Login' : 'Sign Up';
-      document.querySelector('.toggle').textContent = showLogin ? 'Switch to Sign Up' : 'Switch to Login';
+    const box = document.getElementById('chat-box');
+    const username = localStorage.getItem('username') || 'Anonymous';
+
+    async function loadMessages() {
+      const res = await fetch('/api/server/messages');
+      const messages = await res.json();
+      box.innerHTML = '';
+      messages.forEach(m => {
+        box.innerHTML += `<div class="message"><span class="username">${m.username}:</span> ${m.text}</div>`;
+      });
+      box.scrollTop = box.scrollHeight;
     }
 
-    async function signup() {
-      const name = document.getElementById('name').value;
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      const confirm = document.getElementById('confirm').value;
-      if (password !== confirm) return alert("Passwords don't match");
-
-      const res = await fetch('/api/server/register', {
+    async function sendMsg() {
+      const msg = document.getElementById('msg').value;
+      if (!msg) return;
+      await fetch('/api/server/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({ username, text: msg })
       });
-      if (res.ok) {
-        alert('Registered! Now login.');
-        toggleForm();
-      } else {
-        alert('Registration failed');
-      }
+      document.getElementById('msg').value = '';
+      loadMessages();
     }
 
-    async function login() {
-      const email = document.getElementById('login-email').value;
-      const password = document.getElementById('login-pass').value;
-
-      const res = await fetch('/api/server/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      if (res.ok) {
-        localStorage.setItem("username", email);
-        window.location.href = '/arena.html';
-      } else {
-        alert('Login failed');
-      }
-    }
+    setInterval(loadMessages, 1500);
+    loadMessages();
   </script>
 </body>
 </html>
