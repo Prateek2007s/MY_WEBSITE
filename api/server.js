@@ -2,34 +2,66 @@ const express = require('express');
 const serverless = require('serverless-http');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const app = express();
+const fetch = require('node-fetch');
 
-const USERS_API = 'https://6842adafe1347494c31d8de0.mockapi.io/api/v1/users';
-const MSGS_API = 'https://6842adafe1347494c31d8de0.mockapi.io/api/v1/messages';
+const app = express();
+const router = express.Router();
+
+const API_BASE = 'https://6842adafe1347494c31d8de0.mockapi.io/api/v1';
 
 app.use(cors());
 app.use(bodyParser.json());
+app.use('/api', router);
 
-const axios = require('axios');
+// Register new user
+router.post('/register', async (req, res) => {
+  const { name, email, password } = req.body;
+  const check = await fetch(`${API_BASE}/users?email=${email}`);
+  const exists = await check.json();
 
-app.get('/api/users', async (req, res) => {
-  const result = await axios.get(USERS_API);
-  res.json(result.data);
+  if (exists.length > 0) return res.status(409).json({ error: 'Email already registered' });
+
+  const response = await fetch(`${API_BASE}/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, password }),
+  });
+
+  const data = await response.json();
+  res.json(data);
 });
 
-app.post('/api/users', async (req, res) => {
-  const result = await axios.post(USERS_API, req.body);
-  res.json(result.data);
+// Login user
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+  const check = await fetch(`${API_BASE}/users?email=${email}`);
+  const users = await check.json();
+
+  if (users.length === 0 || users[0].password !== password)
+    return res.status(401).json({ error: 'Invalid credentials' });
+
+  res.json(users[0]);
 });
 
-app.get('/api/messages', async (req, res) => {
-  const result = await axios.get(MSGS_API);
-  res.json(result.data);
+// Post message
+router.post('/messages', async (req, res) => {
+  const { username, text } = req.body;
+
+  const response = await fetch(`${API_BASE}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, text, createdAt: new Date().toISOString() }),
+  });
+
+  const data = await response.json();
+  res.json(data);
 });
 
-app.post('/api/messages', async (req, res) => {
-  const result = await axios.post(MSGS_API, req.body);
-  res.json(result.data);
+// Get messages
+router.get('/messages', async (_req, res) => {
+  const response = await fetch(`${API_BASE}/messages`);
+  const messages = await response.json();
+  res.json(messages);
 });
 
 module.exports = app;
