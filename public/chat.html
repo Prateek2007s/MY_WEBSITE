@@ -6,133 +6,127 @@
   <style>
     body {
       margin: 0;
-      font-family: 'Courier New', monospace;
-      background: #0e0e0e;
-      color: #00ffcc;
+      font-family: monospace;
+      background: #0d0d0d;
+      color: #00ffc8;
     }
-    .chat-container {
-      padding: 20px;
+    .container {
       max-width: 800px;
       margin: auto;
+      padding: 20px;
     }
     #messages {
-      border: 1px solid #222;
-      padding: 10px;
       height: 400px;
-      overflow-y: scroll;
+      overflow-y: auto;
+      border: 1px solid #333;
+      padding: 10px;
       background: #111;
       margin-bottom: 10px;
     }
     .msg {
-      padding: 4px;
-      margin: 4px 0;
+      margin-bottom: 10px;
+      padding-bottom: 5px;
       border-bottom: 1px solid #222;
     }
     .msg button {
-      font-size: 10px;
-      background: #ff0044;
+      float: right;
+      background: red;
       color: white;
       border: none;
-      float: right;
+      font-size: 10px;
       cursor: pointer;
     }
-    #chat-form {
-      display: flex;
-    }
     #message-input {
-      flex: 1;
+      width: 80%;
       padding: 10px;
+      border: 1px solid #00ffc8;
       background: #111;
-      color: #00ffcc;
-      border: 1px solid #00ffcc;
+      color: #00ffc8;
     }
     #send-button {
-      background: #00ffcc;
-      color: black;
+      padding: 10px;
+      background: #00ffc8;
       border: none;
-      padding: 10px 20px;
+      color: #000;
       cursor: pointer;
     }
     .popup {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.9);
+      background: rgba(0, 0, 0, 0.95);
       display: flex;
-      align-items: center;
       justify-content: center;
-      z-index: 999;
+      align-items: center;
+      z-index: 10;
     }
     .popup-content {
       background: #111;
-      padding: 30px;
-      border: 2px solid #00ffcc;
+      padding: 20px;
+      border: 2px solid #00ffc8;
       width: 300px;
-      text-align: center;
     }
     input {
       width: 100%;
       margin-bottom: 10px;
       padding: 8px;
       background: #222;
-      border: 1px solid #00ffcc;
-      color: #00ffcc;
+      border: 1px solid #00ffc8;
+      color: #00ffc8;
     }
     .tabs {
       display: flex;
-      justify-content: space-around;
       margin-bottom: 10px;
     }
     .tabs button {
       flex: 1;
-      background: #00ffcc;
-      border: none;
       padding: 10px;
-      cursor: pointer;
-      color: black;
+      border: none;
+      background: #00ffc8;
+      color: #000;
       font-weight: bold;
+      cursor: pointer;
     }
     #logout-btn {
-      margin-bottom: 20px;
-      background: #ff0044;
-      border: none;
+      background: red;
       color: white;
+      border: none;
       padding: 8px 16px;
       cursor: pointer;
-      border-radius: 6px;
+      margin-bottom: 10px;
     }
   </style>
 </head>
 <body>
 
-<div class="popup" id="auth-popup" style="display:none;">
+<div class="popup" id="auth-popup">
   <div class="popup-content">
     <div class="tabs">
       <button onclick="showTab('signup')">Sign Up</button>
       <button onclick="showTab('login')">Login</button>
     </div>
 
-    <form id="signup-form">
+    <div id="signup-form">
       <input type="text" id="signup-name" placeholder="Name" />
       <input type="email" id="signup-email" placeholder="Email" />
-      <input type="password" id="signup-password" placeholder="Password (8+ chars)" />
+      <input type="password" id="signup-pass" placeholder="Password" />
       <input type="password" id="signup-pass2" placeholder="Confirm Password" />
-      <button type="submit">Sign Up</button>
-    </form>
+      <button onclick="signup(event)">Sign Up</button>
+    </div>
 
-    <form id="login-form" style="display:none;">
+    <div id="login-form" style="display:none;">
       <input type="email" id="login-email" placeholder="Email" />
-      <input type="password" id="login-password" placeholder="Password" />
-      <button type="submit">Login</button>
-    </form>
+      <input type="password" id="login-pass" placeholder="Password" />
+      <button onclick="login(event)">Login</button>
+    </div>
   </div>
 </div>
 
-<div class="chat-container" style="display:none;">
+<div class="container" style="display:none;">
   <button id="logout-btn" onclick="logout()">Logout</button>
-  <h2>Welcome to the Lobby, <span id="display-name"></span></h2>
+  <h2>Welcome, <span id="display-name"></span></h2>
   <div id="messages"></div>
-  <form id="chat-form" onsubmit="sendMessage(event)">
-    <input id="message-input" placeholder="Type your message..." required autocomplete="off" />
+  <form onsubmit="sendMessage(event)">
+    <input type="text" id="message-input" placeholder="Type message..." required />
     <button id="send-button">Send</button>
   </form>
 </div>
@@ -146,169 +140,131 @@ function showTab(tab) {
   document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
 }
 
-function saveLogin(name, token) {
+function saveSession(name, token) {
   localStorage.setItem('chatUser', JSON.stringify({ name, token }));
 }
 
-function loadLogin() {
-  const val = localStorage.getItem('chatUser');
-  if (!val) return null;
-  try {
-    return JSON.parse(val);
-  } catch {
-    return null;
-  }
+function loadSession() {
+  const data = localStorage.getItem('chatUser');
+  return data ? JSON.parse(data) : null;
 }
 
 function logout() {
-  currentUser = null;
-  currentToken = null;
   localStorage.removeItem('chatUser');
   location.reload();
 }
 
-function hideAuthShowChat() {
-  document.getElementById('auth-popup').style.display = 'none';
-  document.querySelector('.chat-container').style.display = 'block';
-  document.getElementById('display-name').textContent = currentUser;
-  loadMessages();
-}
+function signup(e) {
+  e.preventDefault();
+  const name = document.getElementById('signup-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const pass = document.getElementById('signup-pass').value;
+  const pass2 = document.getElementById('signup-pass2').value;
+  if (!name || !email || pass !== pass2 || pass.length < 6) return alert('Check inputs.');
 
-function escapeHtml(text) {
-  return text.replace(/[&<>"']/g, function(m) {
-    return {'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[m];
-  });
-}
-
-function loadMessages() {
-  fetch('/messages', {
-    headers: {
-      'Authorization': 'Bearer ' + currentToken
-    }
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (!data.success) return logout();
-    const messagesDiv = document.getElementById('messages');
-    messagesDiv.innerHTML = '';
-    data.messages.forEach(msg => {
-      const msgElem = document.createElement('div');
-      msgElem.classList.add('msg');
-      msgElem.innerHTML = `<strong>${escapeHtml(msg.user)}:</strong> <span>${escapeHtml(msg.text)}</span>`;
-      if (msg.user === currentUser && msg.text !== '[MESSAGE DELETED]') {
-        const delBtn = document.createElement('button');
-        delBtn.textContent = 'Delete';
-        delBtn.onclick = () => deleteMessage(msg.id);
-        msgElem.appendChild(delBtn);
-      }
-      messagesDiv.appendChild(msgElem);
+  fetch('/api/server/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, password: pass })
+  }).then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        saveSession(data.name, data.token);
+        startChat(data.name, data.token);
+      } else alert(data.message);
     });
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  });
+}
+
+function login(e) {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+
+  fetch('/api/server/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: pass })
+  }).then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        saveSession(data.name, data.token);
+        startChat(data.name, data.token);
+      } else alert(data.message);
+    });
+}
+
+function startChat(name, token) {
+  currentUser = name;
+  currentToken = token;
+  document.getElementById('auth-popup').style.display = 'none';
+  document.querySelector('.container').style.display = 'block';
+  document.getElementById('display-name').innerText = name;
+  loadMessages();
 }
 
 function sendMessage(e) {
   e.preventDefault();
-  const input = document.getElementById('message-input');
-  const text = input.value.trim();
+  const text = document.getElementById('message-input').value.trim();
   if (!text) return;
 
-  fetch('/messages', {
+  fetch('/api/server/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ' + currentToken
     },
     body: JSON.stringify({ text })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (!data.success) return logout();
-    input.value = '';
+  }).then(() => {
+    document.getElementById('message-input').value = '';
     loadMessages();
   });
 }
 
-function deleteMessage(id) {
-  if (!confirm('Delete this message?')) return;
-  fetch('/messages/' + id, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': 'Bearer ' + currentToken
-    }
+function loadMessages() {
+  fetch('/api/server/messages', {
+    headers: { 'Authorization': 'Bearer ' + currentToken }
   })
   .then(res => res.json())
   .then(data => {
-    if (data.success) loadMessages();
+    const box = document.getElementById('messages');
+    box.innerHTML = '';
+    data.messages.forEach(msg => {
+      const div = document.createElement('div');
+      div.className = 'msg';
+      div.innerHTML = `<b>${msg.user}</b>: ${msg.text}`;
+      if (msg.user === currentUser && msg.text !== '[MESSAGE DELETED]') {
+        const btn = document.createElement('button');
+        btn.textContent = 'Delete';
+        btn.onclick = () => deleteMessage(msg.id);
+        div.appendChild(btn);
+      }
+      box.appendChild(div);
+    });
+    box.scrollTop = box.scrollHeight;
   });
 }
 
-// Form handlers
-document.getElementById('signup-form').addEventListener('submit', function(e) {
-  e.preventDefault();
-  const name = document.getElementById('signup-name').value.trim();
-  const email = document.getElementById('signup-email').value.trim();
-  const pass = document.getElementById('signup-password').value;
-  const pass2 = document.getElementById('signup-pass2').value;
+function deleteMessage(id) {
+  fetch('/api/server/messages/' + id, {
+    method: 'DELETE',
+    headers: { 'Authorization': 'Bearer ' + currentToken }
+  }).then(() => loadMessages());
+}
 
-  if (!name || !email || pass.length < 8 || pass !== pass2) {
-    return alert("Invalid signup data.");
-  }
-
-  fetch('/signup', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email, password: pass })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (!data.success) return alert(data.message);
-    currentUser = data.name;
-    currentToken = data.token;
-    saveLogin(currentUser, currentToken);
-    hideAuthShowChat();
-  });
-});
-
-document.getElementById('login-form').addEventListener('submit', function(e) {
-  e.preventDefault();
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-
-  if (!email || !password) return alert("Missing login data.");
-
-  fetch('/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (!data.success) return alert(data.message);
-    currentUser = data.name;
-    currentToken = data.token;
-    saveLogin(currentUser, currentToken);
-    hideAuthShowChat();
-  });
-});
-
-// Auto login on page load
 window.onload = () => {
-  const saved = loadLogin();
-  if (saved && saved.name && saved.token) {
-    currentUser = saved.name;
-    currentToken = saved.token;
-    fetch('/verify-token', {
-      headers: { 'Authorization': 'Bearer ' + currentToken }
+  const session = loadSession();
+  if (session && session.token) {
+    fetch('/api/server/verify-token', {
+      headers: { 'Authorization': 'Bearer ' + session.token }
     })
     .then(res => res.json())
     .then(data => {
-      if (data.success) hideAuthShowChat();
-      else logout();
-    })
-    .catch(() => logout());
-  } else {
-    document.getElementById('auth-popup').style.display = 'flex';
+      if (data.success) {
+        startChat(session.name, session.token);
+      } else {
+        logout();
+      }
+    });
   }
 };
 </script>
