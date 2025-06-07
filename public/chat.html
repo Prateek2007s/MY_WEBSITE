@@ -3,187 +3,121 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AntiChat | Login & Sign Up</title>
+  <title>AntiChat - Login & Register</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Orbitron&display=swap">
   <style>
     body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: #111;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
+      margin: 0; font-family: 'Orbitron', monospace;
+      background: #000; color: #00ffcc; display: flex;
+      align-items: center; justify-content: center; height: 100vh;
     }
-
     .container {
-      background: #1a1a1a;
-      padding: 30px 40px;
-      border-radius: 12px;
-      box-shadow: 0 0 15px #00ffcc33;
-      width: 320px;
+      width: 90%; max-width: 400px; background: #111; padding: 20px;
+      border: 1px solid #00ffcc; border-radius: 10px;
     }
-
-    h2 {
-      text-align: center;
-      margin-bottom: 25px;
-      color: #00ffcc;
-    }
-
+    h2 { text-align: center; color: #0ff; }
     input {
-      width: 100%;
-      padding: 10px;
-      margin: 8px 0;
-      border: none;
-      border-radius: 6px;
-      background: #333;
-      color: white;
+      width: 100%; padding: 10px; margin: 10px 0;
+      border: none; border-radius: 5px; background: #222; color: #0ff;
     }
-
-    input::placeholder {
-      color: #bbb;
-    }
-
     button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 12px;
-      background: #00ffcc;
-      border: none;
-      border-radius: 6px;
-      color: #000;
-      font-weight: bold;
-      cursor: pointer;
+      width: 100%; padding: 10px; background: #00ffcc;
+      color: #000; font-weight: bold; border: none;
+      border-radius: 5px; cursor: pointer;
     }
-
-    button:hover {
-      background: #00cc99;
+    button:hover { background: #00ccaa; }
+    .toggle-btns {
+      display: flex; justify-content: space-around; margin: 15px 0;
     }
-
-    .toggle {
-      text-align: center;
-      margin-top: 15px;
-      color: #ccc;
-      cursor: pointer;
-      text-decoration: underline;
-    }
-
-    .message {
-      color: red;
-      text-align: center;
-      margin-top: 10px;
-    }
+    .status { text-align: center; margin: 10px 0; color: red; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2 id="formTitle">Sign Up</h2>
+    <div class="toggle-btns">
+      <button onclick="showForm('login')">Login</button>
+      <button onclick="showForm('register')">Sign Up</button>
+    </div>
 
-    <input type="text" id="name" placeholder="Full Name" />
-    <input type="text" id="username" placeholder="Username" />
-    <input type="email" id="email" placeholder="Email" />
-    <input type="password" id="password" placeholder="Password" />
-    <input type="password" id="confirmPassword" placeholder="Confirm Password" />
+    <div id="status" class="status"></div>
 
-    <button id="submitBtn">Register</button>
-    <div class="toggle" id="toggleForm">Already have an account? Login</div>
+    <form id="registerForm" style="display:none">
+      <h2>Sign Up</h2>
+      <input type="text" id="regName" placeholder="Name" required />
+      <input type="text" id="regUsername" placeholder="Username" required />
+      <input type="email" id="regEmail" placeholder="Email" required />
+      <input type="password" id="regPassword" placeholder="Password" required />
+      <input type="password" id="regConfirm" placeholder="Confirm Password" required />
+      <button type="button" onclick="register()">Register</button>
+    </form>
 
-    <div class="message" id="messageBox"></div>
+    <form id="loginForm">
+      <h2>Login</h2>
+      <input type="email" id="logEmail" placeholder="Email" required />
+      <input type="password" id="logPassword" placeholder="Password" required />
+      <button type="button" onclick="login()">Login</button>
+    </form>
   </div>
 
   <script>
-    const apiUrl = '/api/accounts';
-    let isLogin = false;
+    function showForm(form) {
+      document.getElementById('registerForm').style.display = form === 'register' ? 'block' : 'none';
+      document.getElementById('loginForm').style.display = form === 'login' ? 'block' : 'none';
+      document.getElementById('status').innerText = '';
+    }
 
-    const formTitle = document.getElementById('formTitle');
-    const nameInput = document.getElementById('name');
-    const usernameInput = document.getElementById('username');
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    const confirmPasswordInput = document.getElementById('confirmPassword');
-    const submitBtn = document.getElementById('submitBtn');
-    const toggleForm = document.getElementById('toggleForm');
-    const messageBox = document.getElementById('messageBox');
+    async function register() {
+      const name = document.getElementById('regName').value.trim();
+      const username = document.getElementById('regUsername').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const pass = document.getElementById('regPassword').value;
+      const confirm = document.getElementById('regConfirm').value;
+      const status = document.getElementById('status');
 
-    const resetForm = () => {
-      nameInput.value = '';
-      usernameInput.value = '';
-      emailInput.value = '';
-      passwordInput.value = '';
-      confirmPasswordInput.value = '';
-      messageBox.textContent = '';
-    };
-
-    toggleForm.addEventListener('click', () => {
-      isLogin = !isLogin;
-      if (isLogin) {
-        formTitle.textContent = 'Login';
-        nameInput.style.display = 'none';
-        usernameInput.style.display = 'none';
-        confirmPasswordInput.style.display = 'none';
-        submitBtn.textContent = 'Login';
-        toggleForm.textContent = "Don't have an account? Sign Up";
-      } else {
-        formTitle.textContent = 'Sign Up';
-        nameInput.style.display = 'block';
-        usernameInput.style.display = 'block';
-        confirmPasswordInput.style.display = 'block';
-        submitBtn.textContent = 'Register';
-        toggleForm.textContent = 'Already have an account? Login';
-      }
-      resetForm();
-    });
-
-    submitBtn.addEventListener('click', async () => {
-      messageBox.textContent = '';
-
-      const name = nameInput.value.trim();
-      const username = usernameInput.value.trim();
-      const email = emailInput.value.trim();
-      const password = passwordInput.value;
-      const confirmPassword = confirmPasswordInput.value;
-
-      if (!email || !password || (!isLogin && (!username || !name))) {
-        messageBox.textContent = 'Please fill in all required fields.';
+      if (pass !== confirm) {
+        status.innerText = "Passwords do not match.";
         return;
       }
-
-      if (!isLogin && password !== confirmPassword) {
-        messageBox.textContent = 'Passwords do not match.';
-        return;
-      }
-
-      if (!isLogin && (/\s|#/.test(username))) {
-        messageBox.textContent = 'Username cannot contain spaces or #.';
-        return;
-      }
-
-      const action = isLogin ? 'login' : 'register';
 
       try {
-        const res = await fetch(apiUrl, {
+        const res = await fetch('/api/accounts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action, name, username, email, password }),
+          body: JSON.stringify({ name, username, email, password: pass, action: 'register' })
         });
-
         const data = await res.json();
+        status.innerText = data.message;
+        if (data.success) showForm('login');
+      } catch {
+        status.innerText = "Registration failed.";
+      }
+    }
 
+    async function login() {
+      const email = document.getElementById('logEmail').value.trim();
+      const password = document.getElementById('logPassword').value;
+      const status = document.getElementById('status');
+
+      try {
+        const res = await fetch('/api/accounts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, action: 'login' })
+        });
+        const data = await res.json();
+        status.innerText = data.message;
         if (data.success) {
-          localStorage.setItem('chatUser', JSON.stringify(data.user));
-          window.location.href = 'arena.html';
-        } else {
-          messageBox.textContent = data.message || 'Operation failed.';
+          localStorage.setItem("antichat_name", data.name);
+          localStorage.setItem("antichat_username", data.username);
+          window.location.href = '/arena.html';
         }
       } catch {
-        messageBox.textContent = 'Server error.';
+        status.innerText = "Login failed.";
       }
-    });
+    }
 
-    // Default to signup view
-    nameInput.style.display = 'block';
-    usernameInput.style.display = 'block';
-    confirmPasswordInput.style.display = 'block';
+    // Default to login on page load
+    showForm('login');
   </script>
 </body>
 </html>
