@@ -1,43 +1,38 @@
-// upload.js - Node.js example for uploading file to Cloudflare R2 using AWS S3 SDK
+import formidable from 'formidable';
 
-import AWS from 'aws-sdk';
-import fs from 'fs';
-import path from 'path';
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
-const R2_ACCESS_KEY_ID = '86aced6ef4797b7760614940295dfbc7';       // Your Cloudflare R2 Access Key ID
-const R2_SECRET_ACCESS_KEY = '51a8726814bc743276fcf84f6d8c133757ba4a0b59637e889c826fcb58c6a7c3'; // Your Cloudflare R2 Secret Access Key
-const R2_ENDPOINT = 'https://661c0a29322d276aa333e7722f811e30.r2.cloudflarestorage.com';
-const R2_BUCKET = 'antichat';
-
-const s3 = new AWS.S3({
-  endpoint: R2_ENDPOINT,
-  accessKeyId: R2_ACCESS_KEY_ID,
-  secretAccessKey: R2_SECRET_ACCESS_KEY,
-  region: 'auto',
-  signatureVersion: 'v4',
-});
-
-export async function uploadFileToR2(filePath, fileName) {
-  const fileStream = fs.createReadStream(filePath);
-
-  const params = {
-    Bucket: R2_BUCKET,
-    Key: fileName,
-    Body: fileStream,
-    ACL: 'public-read', // To allow public access (adjust permissions as needed)
-  };
-
-  try {
-    await s3.upload(params).promise();
-    const publicUrl = `${R2_ENDPOINT}/${R2_BUCKET}/${encodeURIComponent(fileName)}`;
-    return publicUrl;
-  } catch (error) {
-    console.error('Upload error:', error);
-    throw error;
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
   }
-}
 
-// Example usage:
-// uploadFileToR2('./path/to/file.jpg', 'uploads/file.jpg')
-//   .then(url => console.log('File URL:', url))
-//   .catch(console.error);
+  const form = new formidable.IncomingForm();
+  form.maxFileSize = 10 * 1024 * 1024; // 10MB max
+
+  form.parse(req, (err, fields, files) => {
+    if (err) {
+      console.error(err);
+      return res.status(400).json({ error: 'Error parsing the file' });
+    }
+
+    const file = files.file; // assuming <input name="file" />
+    if (!file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // TODO: Save file to storage (Cloudflare R2 or local)
+    // For now, just respond success and file info
+
+    res.status(200).json({
+      success: true,
+      filename: file.originalFilename,
+      size: file.size,
+      mimetype: file.mimetype,
+    });
+  });
+}
