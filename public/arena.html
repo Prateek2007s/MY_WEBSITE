@@ -18,7 +18,7 @@
     #chat {
       flex: 1;
       padding: 20px;
-      overflow-y: scroll;
+      overflow-y: auto;
       border-bottom: 1px solid #00ffcc;
     }
     #chat div {
@@ -28,9 +28,6 @@
       display: flex;
       padding: 10px;
       background: #111;
-    }
-    #username {
-      display: none;
     }
     #message {
       flex: 1;
@@ -55,14 +52,16 @@
   <div id="chat"></div>
 
   <form id="form" onsubmit="sendMessage(event)">
-    <input type="text" id="username" readonly />
     <input type="text" id="message" placeholder="Type your message..." required />
     <button id="sendBtn">Send</button>
   </form>
 
   <script>
-    const username = prompt("Enter your hacker name:") || "Anonymous";
-    document.getElementById("username").value = username;
+    const username = localStorage.getItem("name");
+    if (!username) {
+      alert("User not logged in. Redirecting...");
+      window.location.href = "chat.html";
+    }
 
     const API = '/api/messages';
     const chatDiv = document.getElementById("chat");
@@ -85,7 +84,7 @@
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
-          username: username,
+          username,
           text: message,
           createdAt: new Date().toISOString()
         })
@@ -95,7 +94,6 @@
       loadMessages();
     }
 
-    // Polling messages every 3 seconds
     setInterval(loadMessages, 3000);
     loadMessages();
   </script>
