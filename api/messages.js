@@ -5,19 +5,28 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const fetchRes = await fetch(API);
       const messages = await fetchRes.json();
-      return res.status(200).json(messages);
+      // Return last 50 messages
+      return res.status(200).json(messages.slice(-50));
     }
 
     if (req.method === 'POST') {
-      const { username, name, text } = req.body;
-      if (!username || !text) {
-        return res.status(400).json({ error: 'Invalid message' });
+      const { username, content, type = 'text', fileUrl = null } = req.body;
+      if (!username || (!content && !fileUrl)) {
+        return res.status(400).json({ error: 'Invalid message data' });
       }
+
+      const newMessage = {
+        username,
+        content: content || '',
+        type,
+        fileUrl,
+        timestamp: new Date().toISOString(),
+      };
 
       await fetch(API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, name, text })
+        body: JSON.stringify(newMessage),
       });
 
       return res.status(201).json({ success: true });
@@ -25,13 +34,13 @@ export default async function handler(req, res) {
 
     if (req.method === 'DELETE') {
       const { id } = req.query;
-      if (!id) return res.status(400).json({ error: 'Missing ID' });
+      if (!id) return res.status(400).json({ error: 'Missing message ID' });
 
-      // Optional: Replace message text with [MESSAGE DELETED] instead of deleting
+      // Soft delete message by replacing content
       await fetch(`${API}/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: '[MESSAGE DELETED]' })
+        body: JSON.stringify({ content: '[MESSAGE DELETED]', type: 'text', fileUrl: null }),
       });
 
       return res.status(200).json({ success: true });
