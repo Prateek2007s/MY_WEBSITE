@@ -1,290 +1,292 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title> AntiChat </title>
-<style>
-  body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0; background: #e5ddd5;
-    display: flex; flex-direction: column; height: 100vh;
-  }
-  header {
-    background: #075e54;
-    color: white;
-    padding: 10px 20px;
-    font-size: 1.5rem;
-    text-align: center;
-  }
-  #chat-container {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px;
-    background: #f7f7f7;
-    display: flex;
-    flex-direction: column;
-  }
-  .message {
-    max-width: 70%;
-    margin-bottom: 10px;
-    padding: 8px 12px;
-    border-radius: 10px;
-    position: relative;
-    font-size: 1rem;
-    word-wrap: break-word;
-  }
-  .message.self {
-    background: #dcf8c6;
-    align-self: flex-end;
-  }
-  .message.other {
-    background: white;
-    align-self: flex-start;
-  }
-  .message .meta {
-    font-size: 0.75rem;
-    color: #555;
-    margin-bottom: 4px;
-  }
-  #input-area {
-    display: flex;
-    padding: 10px;
-    background: #fff;
-    border-top: 1px solid #ddd;
-  }
-  #input-area textarea {
-    flex: 1;
-    resize: none;
-    border-radius: 20px;
-    border: 1px solid #ccc;
-    padding: 8px 12px;
-    font-size: 1rem;
-    outline: none;
-  }
-  #input-area button, #input-area input[type=file] {
-    margin-left: 10px;
-    border: none;
-    background: #075e54;
-    color: white;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    cursor: pointer;
-  }
-  #input-area input[type=file] {
-    padding: 0;
-  }
-  .preview-container {
-    padding: 5px 15px;
-    background: #fff;
-    border-top: 1px solid #ddd;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  .preview-container img,
-  .preview-container video,
-  .preview-container audio {
-    max-height: 80px;
-    border-radius: 10px;
-  }
-  .preview-item {
-    position: relative;
-  }
-  .preview-remove {
-    position: absolute;
-    top: -6px;
-    right: -6px;
-    background: #f44336;
-    color: white;
-    border-radius: 50%;
-    width: 18px;
-    height: 18px;
-    font-size: 14px;
-    line-height: 18px;
-    cursor: pointer;
-    text-align: center;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AntiChat Arena</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Orbitron&display=swap" />
+  <style>
+    body {
+      font-family: 'Orbitron', monospace;
+      background-color: #000;
+      color: #00ffcc;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    #chat-header {
+      background-color: #111;
+      padding: 15px;
+      text-align: center;
+      font-size: 1.5em;
+      border-bottom: 1px solid #00ffcc;
+    }
+    #chat-container {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 10px;
+      background-color: #111;
+    }
+    .message {
+      margin-bottom: 12px;
+      max-width: 80%;
+      word-wrap: break-word;
+      padding: 8px 12px;
+      border-radius: 12px;
+      line-height: 1.3;
+      font-size: 0.95em;
+      position: relative;
+    }
+    .message .username {
+      font-weight: bold;
+      margin-bottom: 4px;
+      display: block;
+      color: #0ff;
+    }
+    .message.sent {
+      background-color: #00ffcc;
+      color: #000;
+      margin-left: auto;
+      border-bottom-right-radius: 0;
+    }
+    .message.received {
+      background-color: #003333;
+      color: #00ffcc;
+      margin-right: auto;
+      border-bottom-left-radius: 0;
+    }
+    #chat-form {
+      display: flex;
+      padding: 10px;
+      background-color: #111;
+      border-top: 1px solid #00ffcc;
+    }
+    #chat-input {
+      flex-grow: 1;
+      border: none;
+      padding: 10px;
+      border-radius: 20px;
+      font-size: 1em;
+      background: #222;
+      color: #00ffcc;
+      outline: none;
+    }
+    #chat-submit {
+      background: #00ffcc;
+      border: none;
+      padding: 10px 20px;
+      margin-left: 10px;
+      border-radius: 20px;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #chat-submit:hover {
+      background: #00ccaa;
+    }
+
+    /* Edit button */
+    .edit-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: transparent;
+      border: none;
+      color: #004040;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.8em;
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+    .edit-btn:hover {
+      background: #007070;
+      color: #00ffcc;
+    }
+
+    /* Edit input */
+    .edit-input {
+      width: 100%;
+      padding: 6px 10px;
+      font-size: 0.95em;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      background: #222;
+      color: #0ff;
+    }
+
+    /* Edit action buttons */
+    .edit-actions {
+      margin-top: 4px;
+      text-align: right;
+    }
+    .edit-actions button {
+      background: #00ffcc;
+      border: none;
+      color: #000;
+      font-weight: bold;
+      padding: 4px 10px;
+      margin-left: 6px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .edit-actions button:hover {
+      background: #00ccaa;
+    }
+  </style>
 </head>
 <body>
 
-<header>AntiChat Arena</header>
+  <div id="chat-header">AntiChat Arena</div>
 
-<div id="chat-container"></div>
+  <div id="chat-container"></div>
 
-<div class="preview-container" id="preview-container" style="display:none;"></div>
+  <form id="chat-form">
+    <input id="chat-input" placeholder="Type a message..." autocomplete="off" required />
+    <button id="chat-submit" type="submit">Send</button>
+  </form>
 
-<div id="input-area">
-  <textarea id="message-input" rows="1" placeholder="Type a message"></textarea>
-  <input type="file" id="file-input" accept="image/*,video/*,audio/*" multiple />
-  <button id="send-btn">➤</button>
-</div>
+  <script>
+    const API = '/api/messages'; // adjust if needed
 
-<script>
-  const API_MESSAGES = '/api/messages'; // Adjust if your api route differs
-  const R2_ENDPOINT = 'https://661c0a29322d276aa333e7722f811e30.r2.cloudflarestorage.com/antichat';
-  const USERNAME = prompt("Enter your username") || "Anonymous";
+    const USERNAME = localStorage.getItem('antichat_username');
+    const NAME = localStorage.getItem('antichat_name');
 
-  const chatContainer = document.getElementById('chat-container');
-  const messageInput = document.getElementById('message-input');
-  const fileInput = document.getElementById('file-input');
-  const sendBtn = document.getElementById('send-btn');
-  const previewContainer = document.getElementById('preview-container');
-
-  let selectedFiles = [];
-
-  function createMessageElement(msg) {
-    const div = document.createElement('div');
-    div.className = 'message ' + (msg.username === USERNAME ? 'self' : 'other');
-
-    const meta = document.createElement('div');
-    meta.className = 'meta';
-    meta.textContent = `${msg.username} • ${new Date(msg.timestamp).toLocaleTimeString()}`;
-    div.appendChild(meta);
-
-    if(msg.type === 'text') {
-      const text = document.createElement('div');
-      text.textContent = msg.content;
-      div.appendChild(text);
-    } else if(msg.type === 'image') {
-      const img = document.createElement('img');
-      img.src = msg.fileUrl;
-      img.style.maxWidth = '100%';
-      div.appendChild(img);
-    } else if(msg.type === 'video') {
-      const video = document.createElement('video');
-      video.src = msg.fileUrl;
-      video.controls = true;
-      video.style.maxWidth = '100%';
-      div.appendChild(video);
-    } else if(msg.type === 'audio') {
-      const audio = document.createElement('audio');
-      audio.src = msg.fileUrl;
-      audio.controls = true;
-      div.appendChild(audio);
+    if (!USERNAME || !NAME) {
+      alert('You must be logged in!');
+      window.location.href = '/chat.html';
     }
 
-    return div;
-  }
+    const chatContainer = document.getElementById('chat-container');
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
 
-  async function fetchMessages() {
-    try {
-      const res = await fetch(API_MESSAGES);
-      const data = await res.json();
+    // Escape HTML
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Track which message is being edited
+    let editingMessageId = null;
+
+    // Render messages
+    function renderMessages(messages) {
       chatContainer.innerHTML = '';
-      data.forEach(msg => {
-        chatContainer.appendChild(createMessageElement(msg));
-      });
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-    } catch (err) {
-      console.error('Failed to fetch messages', err);
-    }
-  }
+      messages.forEach(msg => {
+        if (!msg.text) return;
 
-  async function uploadFile(file) {
-    // Here you need to implement upload to your backend which uploads to R2 and returns the URL
-    // This example assumes you have an API endpoint /api/upload that handles uploads
-    const formData = new FormData();
-    formData.append('file', file);
+        const msgDiv = document.createElement('div');
+        msgDiv.classList.add('message');
+        msgDiv.dataset.id = msg.id;
 
-    try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (data.url) return data.url;
-      throw new Error('Upload failed');
-    } catch (err) {
-      alert('File upload failed: ' + err.message);
-      return null;
-    }
-  }
+        const isOwn = msg.username === USERNAME;
+        msgDiv.classList.add(isOwn ? 'sent' : 'received');
 
-  sendBtn.addEventListener('click', async () => {
-    const text = messageInput.value.trim();
-    if(!text && selectedFiles.length === 0) return;
+        if (editingMessageId === msg.id) {
+          // Editing mode
+          msgDiv.innerHTML = `
+            <span class="username">${escapeHtml(NAME)}</span>
+            <textarea class="edit-input" rows="2">${escapeHtml(msg.text)}</textarea>
+            <div class="edit-actions">
+              <button class="save-btn">Save</button>
+              <button class="cancel-btn">Cancel</button>
+            </div>
+          `;
 
-    // Send all files first
-    for (const file of selectedFiles) {
-      const url = await uploadFile(file);
-      if (!url) continue;
+          // Save button
+          msgDiv.querySelector('.save-btn').onclick = async () => {
+            const newText = msgDiv.querySelector('.edit-input').value.trim();
+            if (!newText) return alert('Message cannot be empty');
 
-      const type = file.type.startsWith('image/') ? 'image' :
-                   file.type.startsWith('video/') ? 'video' :
-                   file.type.startsWith('audio/') ? 'audio' : 'file';
+            try {
+              const res = await fetch(API, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: msg.id, text: newText }),
+              });
+              if (!res.ok) throw new Error('Failed to update message');
+              editingMessageId = null;
+              loadMessages();
+            } catch (err) {
+              alert('Error updating message');
+              console.error(err);
+            }
+          };
 
-      await fetch(API_MESSAGES, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ username: USERNAME, content: '', type, fileUrl: url }),
-      });
-    }
-    selectedFiles = [];
-    previewContainer.style.display = 'none';
-    previewContainer.innerHTML = '';
+          // Cancel button
+          msgDiv.querySelector('.cancel-btn').onclick = () => {
+            editingMessageId = null;
+            loadMessages();
+          };
 
-    // Send text message if any
-    if(text) {
-      await fetch(API_MESSAGES, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ username: USERNAME, content: text, type: 'text', fileUrl: null }),
-      });
-      messageInput.value = '';
-    }
-
-    fetchMessages();
-  });
-
-  fileInput.addEventListener('change', () => {
-    selectedFiles = Array.from(fileInput.files);
-    previewContainer.innerHTML = '';
-    if(selectedFiles.length) {
-      previewContainer.style.display = 'flex';
-      selectedFiles.forEach(file => {
-        const previewItem = document.createElement('div');
-        previewItem.className = 'preview-item';
-
-        const removeBtn = document.createElement('div');
-        removeBtn.className = 'preview-remove';
-        removeBtn.textContent = '×';
-        removeBtn.onclick = () => {
-          selectedFiles = selectedFiles.filter(f => f !== file);
-          previewItem.remove();
-          if(selectedFiles.length === 0) previewContainer.style.display = 'none';
-        };
-
-        if(file.type.startsWith('image/')) {
-          const img = document.createElement('img');
-          img.src = URL.createObjectURL(file);
-          previewItem.appendChild(img);
-        } else if(file.type.startsWith('video/')) {
-          const video = document.createElement('video');
-          video.src = URL.createObjectURL(file);
-          video.controls = true;
-          previewItem.appendChild(video);
-        } else if(file.type.startsWith('audio/')) {
-          const audio = document.createElement('audio');
-          audio.src = URL.createObjectURL(file);
-          audio.controls = true;
-          previewItem.appendChild(audio);
         } else {
-          const div = document.createElement('div');
-          div.textContent = file.name;
-          previewItem.appendChild(div);
-        }
-        previewItem.appendChild(removeBtn);
-        previewContainer.appendChild(previewItem);
-      });
-    } else {
-      previewContainer.style.display = 'none';
-    }
-  });
+          // Normal mode
+          msgDiv.innerHTML = `
+            <span class="username">${escapeHtml(isOwn ? NAME : msg.username)}</span>
+            <span class="text">${escapeHtml(msg.text)}</span>
+          `;
 
-  // Poll messages every 5 seconds
-  fetchMessages();
-  setInterval(fetchMessages, 5000);
-</script>
+          // Add edit button if own message
+          if (isOwn) {
+            const btn = document.createElement('button');
+            btn.className = 'edit-btn';
+            btn.textContent = 'Edit';
+            btn.title = 'Edit message';
+            btn.onclick = () => {
+              editingMessageId = msg.id;
+              renderMessages(messages);
+            };
+            msgDiv.appendChild(btn);
+          }
+        }
+
+        chatContainer.appendChild(msgDiv);
+      });
+
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    async function loadMessages() {
+      try {
+        const res = await fetch(API);
+        if (!res.ok) throw new Error('Failed to fetch messages');
+        const messages = await res.json();
+        renderMessages(messages);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    chatForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      try {
+        const res = await fetch(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: USERNAME, text }),
+        });
+        if (!res.ok) throw new Error('Failed to send message');
+        chatInput.value = '';
+        loadMessages();
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    loadMessages();
+    setInterval(loadMessages, 3000);
+  </script>
 
 </body>
 </html>
