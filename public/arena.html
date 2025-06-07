@@ -101,6 +101,41 @@
       color: #fff;
     }
 
+    .file-preview {
+      background: #333;
+      padding: 8px;
+      margin: 5px 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      color: #00bfa6;
+      border-left: 3px solid #00bfa6;
+      border-top: 1px solid #555;
+    }
+    
+    #filePreview {
+      background: #1f1f1f;
+      border-top: 1px solid #333;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .file-preview-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 3px 0;
+    }
+
+    .file-preview-remove {
+      background: #ff4444;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      padding: 2px 6px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+
     #sendBtn {
       padding: 10px 16px;
       background: #00bfa6;
@@ -110,10 +145,72 @@
       cursor: pointer;
     }
 
-    img.preview {
-      max-width: 200px;
-      border-radius: 10px;
+    .file-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: 300px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
       margin-top: 8px;
+    }
+
+    .file-icon {
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+
+    .file-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .file-name {
+      font-weight: bold;
+      margin-bottom: 6px;
+      word-break: break-all;
+      font-size: 14px;
+      color: #e0e0e0;
+    }
+
+    .file-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .download-btn {
+      background: #00bfa6;
+      color: white;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .download-btn:hover {
+      background: #00a693;
+    }
+
+    .file-upload-status {
+      color: #00bfa6;
+      font-size: 12px;
+      margin-top: 5px;
+    }
+
+    .upload-progress {
+      background: #333;
+      border-radius: 10px;
+      padding: 8px;
+      margin: 5px 0;
+      color: #00bfa6;
+      font-size: 12px;
     }
 
     a {
@@ -124,11 +221,14 @@
 <body>
   <header>AntiChat Arena</header>
   <div id="chat"></div>
+  <div id="filePreview" style="display: none;"></div>
   <footer>
-    <label class="upload-btn" for="fileInput">📎</label>
-    <input type="file" id="fileInput" />
-    <input type="text" id="messageInput" placeholder="Type your message..." />
-    <button id="sendBtn">➤</button>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <label class="upload-btn" for="fileInput">📎</label>
+      <input type="file" id="fileInput" accept="*/*" multiple />
+      <input type="text" id="messageInput" placeholder="Type your message..." />
+      <button id="sendBtn">➤</button>
+    </div>
   </footer>
 
   <script>
@@ -136,11 +236,69 @@
     const input = document.getElementById("messageInput");
     const sendBtn = document.getElementById("sendBtn");
     const fileInput = document.getElementById("fileInput");
+    const filePreview = document.getElementById("filePreview");
+
+    let selectedFiles = [];
 
     const username = localStorage.getItem("antichat_username") || prompt("Username?");
     const name = localStorage.getItem("antichat_name") || prompt("Name?");
     localStorage.setItem("antichat_username", username);
     localStorage.setItem("antichat_name", name);
+
+    // File input change handler
+    fileInput.addEventListener('change', function(e) {
+      selectedFiles = Array.from(e.target.files);
+      updateFilePreview();
+    });
+
+    function updateFilePreview() {
+      if (selectedFiles.length === 0) {
+        filePreview.style.display = 'none';
+        return;
+      }
+
+      filePreview.style.display = 'block';
+      filePreview.innerHTML = `
+        <div class="file-preview">
+          <strong>📎 Selected Files (${selectedFiles.length}):</strong>
+          ${selectedFiles.map((file, index) => `
+            <div class="file-preview-item">
+              <span>${getFileIcon(file.name)} ${file.name} (${formatFileSize(file.size)})</span>
+              <button class="file-preview-remove" onclick="removeFile(${index})">✕</button>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function removeFile(index) {
+      selectedFiles.splice(index, 1);
+      updateFilePreview();
+      
+      // Update the file input
+      const dt = new DataTransfer();
+      selectedFiles.forEach(file => dt.items.add(file));
+      fileInput.files = dt.files;
+    }
+
+    function getFileIcon(fileName) {
+      const ext = fileName.toLowerCase();
+      if (ext.match(/\.(png|jpe?g|gif|webp|bmp|svg)$/)) return '🖼️';
+      if (ext.match(/\.(mp4|webm|ogg|mov|avi|mkv|flv)$/)) return '🎥';
+      if (ext.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/)) return '🎵';
+      if (ext.match(/\.pdf$/)) return '📄';
+      if (ext.match(/\.(txt|doc|docx)$/)) return '📝';
+      if (ext.match(/\.(zip|rar|7z)$/)) return '📦';
+      return '📎';
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
 
     async function fetchMessages() {
       const res = await fetch("/api/messages");
@@ -155,11 +313,30 @@
         let content = `<strong>${msg.name}</strong><br/>`;
         if (msg.text) content += msg.text;
         if (msg.fileUrl) {
-          const isImage = /\.(png|jpe?g|gif|webp)$/i.test(msg.fileUrl);
-          if (isImage) {
-            content += `<br><img class="preview" src="${msg.fileUrl}" />`;
-          } else {
-            content += `<br><a href="${msg.fileUrl}" target="_blank">📎 Download file</a>`;
+          const urls = msg.fileUrl.split(',').filter(url => url.trim());
+          for (const url of urls) {
+            const fileName = url.split('/').pop().split('_').slice(1).join('_');
+            const isImage = /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(url);
+            const isVideo = /\.(mp4|webm|ogg|mov|avi|mkv|flv)$/i.test(url);
+            const isAudio = /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(url);
+            const isPdf = /\.pdf$/i.test(url);
+            
+            // For all file types, show only download button
+            let fileIcon = '📎';
+            if (isImage) fileIcon = '🖼️';
+            else if (isVideo) fileIcon = '🎥';
+            else if (isAudio) fileIcon = '🎵';
+            else if (isPdf) fileIcon = '📄';
+
+            content += `<br><div class="file-container">
+              <div class="file-icon">${fileIcon}</div>
+              <div class="file-info">
+                <div class="file-name">${fileName}</div>
+                <div class="file-actions">
+                  <button onclick="downloadFile('${url}', '${fileName}')" class="download-btn">⬇️ Download</button>
+                </div>
+              </div>
+            </div>`;
           }
         }
         content += `<small>${new Date(msg.createdAt).toLocaleString()}</small>`;
@@ -182,29 +359,55 @@
 
     sendBtn.onclick = async () => {
       const text = input.value.trim();
-      const file = fileInput.files[0];
 
-      if (!text && !file) return;
+      if (!text && selectedFiles.length === 0) return;
 
-      let fileUrl = "";
-      if (file) {
-        const formData = new FormData();
-        formData.append("file", file);
-        const res = await fetch("/api/upload", { method: "POST", body: formData });
-        const data = await res.json();
-        if (!data.url) return alert("Upload failed");
-        fileUrl = data.url;
+      // Handle multiple file uploads
+      const fileUrls = [];
+      if (selectedFiles.length > 0) {
+        sendBtn.textContent = "Uploading...";
+        sendBtn.disabled = true;
+        
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const file = selectedFiles[i];
+          const formData = new FormData();
+          formData.append("file", file);
+          
+          try {
+            const res = await fetch("/api/upload", { method: "POST", body: formData });
+            const data = await res.json();
+            if (data.url) {
+              fileUrls.push(data.url);
+            } else {
+              alert(`Failed to upload ${file.name}`);
+            }
+          } catch (error) {
+            alert(`Error uploading ${file.name}: ${error.message}`);
+          }
+        }
+        
+        sendBtn.textContent = "➤";
+        sendBtn.disabled = false;
+        
+        // Clear selected files and preview
+        selectedFiles = [];
         fileInput.value = "";
+        updateFilePreview();
       }
 
-      await fetch("/api/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, name, text, fileUrl }),
-      });
+      // Send message with text and all uploaded files
+      if (text || fileUrls.length > 0) {
+        const fileUrl = fileUrls.join(','); // Store multiple URLs separated by commas
+        
+        await fetch("/api/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, name, text, fileUrl }),
+        });
 
-      input.value = "";
-      fetchMessages();
+        input.value = "";
+        fetchMessages();
+      }
     };
 
     async function editMessage(id, oldText) {
@@ -223,6 +426,24 @@
       if (confirm("Are you sure you want to delete this message?")) {
         await fetch(`/api/messages?id=${id}`, { method: "DELETE" });
         fetchMessages();
+      }
+    }
+
+    // Function to download files using backend proxy
+    function downloadFile(url, fileName) {
+      try {
+        // Use our backend proxy to download the file
+        const downloadUrl = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(fileName)}`;
+        
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (error) {
+        console.error('Download error:', error);
+        alert('Download failed. Please try again.');
       }
     }
 
