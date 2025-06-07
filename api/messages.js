@@ -1,28 +1,26 @@
-// api/messages.js
-const express = require('express');
-const axios = require('axios');
-const router = express.Router();
-
-const MSG_URL = 'https://6842adafe1347494c31d8de0.mockapi.io/api/v1/messages';
-
-router.get('/', async (req, res) => {
-  try {
-    const response = await axios.get(MSG_URL);
-    res.json(response.data);
-  } catch {
-    res.status(500).json({ error: 'Could not fetch messages' });
-  }
-});
-
-router.post('/', async (req, res) => {
-  const { username, text } = req.body;
+export default async function handler(req, res) {
+  const API = 'https://6842adafe1347494c31d8de0.mockapi.io/api/v1/messages';
 
   try {
-    const message = await axios.post(MSG_URL, { username, text, createdAt: new Date() });
-    res.json(message.data);
-  } catch {
-    res.status(500).json({ error: 'Could not send message' });
-  }
-});
+    if (req.method === 'GET') {
+      const response = await fetch(API);
+      const data = await response.json();
+      return res.status(200).json(data);
+    }
 
-module.exports = router;
+    if (req.method === 'POST') {
+      const { username, text, createdAt } = req.body;
+      const response = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, text, createdAt })
+      });
+      const data = await response.json();
+      return res.status(201).json(data);
+    }
+
+    return res.status(405).json({ message: 'Method not allowed' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Server error', error });
+  }
+}
