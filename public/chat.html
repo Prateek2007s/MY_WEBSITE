@@ -1,91 +1,165 @@
-<!-- ✅ Updated chat.html --><!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AntiChat - Login/Register</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AntiChat - Login / Signup</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
-      background: black;
-      color: #0f0;
+      margin: 0;
       font-family: monospace;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      background-color: #000;
+      color: #0f0;
     }
     .container {
-      background: #111;
-      padding: 2rem;
-      border: 1px solid #0f0;
-      border-radius: 10px;
-      width: 300px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px;
     }
-    input, button {
-      display: block;
+    .form-box {
+      background-color: #111;
+      padding: 20px;
+      border: 1px solid #0f0;
+      border-radius: 8px;
       width: 100%;
-      margin-top: 10px;
-      padding: 10px;
-      background: black;
-      border: 1px solid #0f0;
-      color: #0f0;
+      max-width: 400px;
     }
-    #status {
+    .form-box h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      background: #000;
+      color: #0f0;
+      border: 1px solid #0f0;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #000;
+      color: #0f0;
+      border: 1px solid #0f0;
       margin-top: 10px;
-      color: red;
-      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .switch {
+      text-align: center;
+      margin-top: 10px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .message {
+      text-align: center;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>AntiChat</h2>
-    <input type="text" id="regName" placeholder="Name" required>
-    <input type="text" id="regUsername" placeholder="Username" required>
-    <input type="email" id="regEmail" placeholder="Email" required>
-    <input type="password" id="regPassword" placeholder="Password" required>
-    <button onclick="register()">Sign Up</button>
-    <hr>
-    <input type="email" id="loginEmail" placeholder="Email" required>
-    <input type="password" id="loginPassword" placeholder="Password" required>
-    <button onclick="login()">Login</button>
-    <div id="status"></div>
-  </div>  <script>
-    const API = "/api/accounts";
+    <div class="form-box" id="signupBox">
+      <h2>Sign Up</h2>
+      <input type="text" id="signupName" placeholder="Full Name" />
+      <input type="text" id="signupUsername" placeholder="Username" />
+      <input type="email" id="signupEmail" placeholder="Email" />
+      <input type="password" id="signupPassword" placeholder="Password" />
+      <input type="password" id="signupConfirm" placeholder="Confirm Password" />
+      <button onclick="handleRegister()">Register</button>
+      <div class="switch" onclick="switchToLogin()">Already have an account? Login</div>
+      <div class="message" id="signupMessage"></div>
+    </div>
 
-    async function register() {
-      const name = document.getElementById("regName").value;
-      const username = document.getElementById("regUsername").value;
-      const email = document.getElementById("regEmail").value;
-      const password = document.getElementById("regPassword").value;
+    <div class="form-box" id="loginBox" style="display: none;">
+      <h2>Login</h2>
+      <input type="email" id="loginEmail" placeholder="Email" />
+      <input type="password" id="loginPassword" placeholder="Password" />
+      <button onclick="handleLogin()">Login</button>
+      <div class="switch" onclick="switchToSignup()">Don't have an account? Sign Up</div>
+      <div class="message" id="loginMessage"></div>
+    </div>
+  </div>
 
-      const res = await fetch(`${API}/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, username })
-      });
-
-      const data = await res.json();
-      document.getElementById("status").innerText = data.message || "Registered successfully";
+  <script>
+    function switchToLogin() {
+      document.getElementById('signupBox').style.display = 'none';
+      document.getElementById('loginBox').style.display = 'block';
     }
 
-    async function login() {
-      const email = document.getElementById("loginEmail").value;
-      const password = document.getElementById("loginPassword").value;
+    function switchToSignup() {
+      document.getElementById('signupBox').style.display = 'block';
+      document.getElementById('loginBox').style.display = 'none';
+    }
 
-      const res = await fetch(`${API}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
-      });
+    async function handleRegister() {
+      const name = document.getElementById('signupName').value;
+      const username = document.getElementById('signupUsername').value;
+      const email = document.getElementById('signupEmail').value;
+      const password = document.getElementById('signupPassword').value;
+      const confirm = document.getElementById('signupConfirm').value;
+      const msg = document.getElementById('signupMessage');
 
-      const data = await res.json();
-      if (res.ok) {
-        localStorage.setItem("name", data.name);
-        localStorage.setItem("username", data.username);
-        window.location.href = "/arena.html";
-      } else {
-        document.getElementById("status").innerText = data.message || "Login failed";
+      if (!name || !username || !email || !password || !confirm) {
+        msg.textContent = 'Please fill all fields';
+        return;
+      }
+      if (password !== confirm) {
+        msg.textContent = 'Passwords do not match';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/accounts/register', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ name, username, email, password })
+        });
+
+        const data = await res.json();
+        msg.textContent = data.message;
+
+        if (res.status === 200) {
+          switchToLogin();
+        }
+      } catch (err) {
+        msg.textContent = 'Registration failed.';
       }
     }
-  </script></body>
+
+    async function handleLogin() {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      const msg = document.getElementById('loginMessage');
+
+      if (!email || !password) {
+        msg.textContent = 'Please fill all fields';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/accounts/login', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+        msg.textContent = data.message;
+
+        if (res.status === 200) {
+          localStorage.setItem('username', data.username);
+          localStorage.setItem('name', data.name);
+          window.location.href = 'arena.html';
+        }
+      } catch (err) {
+        msg.textContent = 'Login failed.';
+      }
+    }
+  </script>
+</body>
 </html>
