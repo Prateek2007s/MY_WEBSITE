@@ -1,39 +1,45 @@
-// api/messages.js
-import fetch from 'node-fetch';
+const API = 'https://6842adafe1347494c31d8de0.mockapi.io/api/v1/messages';
 
-const API_BASE = 'https://6842adafe1347494c31d8de0.mockapi.io/api/v1';
-
-export async function GET(req) {
+export default async function handler(req, res) {
   try {
-    const messagesRes = await fetch(`${API_BASE}/messages`);
-    const messages = await messagesRes.json();
-    return new Response(JSON.stringify({ success: true, messages }), { status: 200 });
-  } catch {
-    return new Response(JSON.stringify({ success: false, message: 'Failed to fetch messages' }), { status: 500 });
-  }
-}
-
-export async function POST(req) {
-  try {
-    const body = await req.json();
-    const { username, message } = body;
-    if (!username || !message) {
-      return new Response(JSON.stringify({ success: false, message: 'Missing username or message' }), { status: 400 });
+    if (req.method === 'GET') {
+      const fetchRes = await fetch(API);
+      const messages = await fetchRes.json();
+      return res.status(200).json(messages);
     }
 
-    const createRes = await fetch(`${API_BASE}/messages`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, message, createdAt: new Date().toISOString() }),
-    });
+    if (req.method === 'POST') {
+      const { username, name, text } = req.body;
+      if (!username || !text) {
+        return res.status(400).json({ error: 'Invalid message' });
+      }
 
-    if (!createRes.ok) {
-      return new Response(JSON.stringify({ success: false, message: 'Failed to send message' }), { status: 500 });
+      await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, name, text })
+      });
+
+      return res.status(201).json({ success: true });
     }
 
-    const newMsg = await createRes.json();
-    return new Response(JSON.stringify({ success: true, message: newMsg }), { status: 201 });
-  } catch {
-    return new Response(JSON.stringify({ success: false, message: 'Server error' }), { status: 500 });
+    if (req.method === 'DELETE') {
+      const { id } = req.query;
+      if (!id) return res.status(400).json({ error: 'Missing ID' });
+
+      // Optional: Replace message text with [MESSAGE DELETED] instead of deleting
+      await fetch(`${API}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: '[MESSAGE DELETED]' })
+      });
+
+      return res.status(200).json({ success: true });
+    }
+
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error' });
   }
 }
