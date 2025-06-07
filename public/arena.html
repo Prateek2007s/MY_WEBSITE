@@ -1,66 +1,233 @@
-const API = "https://6842adafe1347494c31d8de0.mockapi.io/api/v1/messages";
-
-export default async function handler(req, res) {
-  try {
-    const method = req.method;
-
-    // GET: Fetch all messages
-    if (method === "GET") {
-      const response = await fetch(API);
-      const data = await response.json();
-      return res.status(200).json(data);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AntiChat Arena</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      background: #121212;
+      color: #e0e0e0;
+      font-family: 'Rubik', sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
     }
 
-    // POST: Send new message
-    if (method === "POST") {
-      const { username, name, text, fileUrl } = req.body;
+    header {
+      background: #1f1f1f;
+      padding: 15px;
+      font-size: 20px;
+      color: #00bfa6;
+      text-align: center;
+      border-bottom: 1px solid #333;
+    }
 
-      if (!username || (!text && !fileUrl)) {
-        return res.status(400).json({ error: "Missing text or fileUrl" });
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .message {
+      padding: 10px 12px;
+      background: #2a2a2a;
+      border-radius: 12px;
+      max-width: 80%;
+      position: relative;
+      word-wrap: break-word;
+    }
+
+    .message.own {
+      align-self: flex-end;
+      background: #005f4b;
+    }
+
+    .message small {
+      display: block;
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 5px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 5px;
+    }
+
+    .actions button {
+      background: transparent;
+      color: #aaa;
+      border: none;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    footer {
+      background: #1f1f1f;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-top: 1px solid #333;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .upload-btn {
+      background: #00bfa6;
+      border: none;
+      padding: 8px;
+      border-radius: 5px;
+      cursor: pointer;
+      color: black;
+      font-weight: bold;
+    }
+
+    #messageInput {
+      flex: 1;
+      padding: 10px;
+      background: #2a2a2a;
+      border: none;
+      border-radius: 5px;
+      color: #fff;
+    }
+
+    #sendBtn {
+      padding: 10px 16px;
+      background: #00bfa6;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    img.preview {
+      max-width: 200px;
+      border-radius: 10px;
+      margin-top: 8px;
+    }
+
+    a {
+      color: #00bfa6;
+    }
+  </style>
+</head>
+<body>
+  <header>AntiChat Arena</header>
+  <div id="chat"></div>
+  <footer>
+    <label class="upload-btn" for="fileInput">📎</label>
+    <input type="file" id="fileInput" />
+    <input type="text" id="messageInput" placeholder="Type your message..." />
+    <button id="sendBtn">➤</button>
+  </footer>
+
+  <script>
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("messageInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const fileInput = document.getElementById("fileInput");
+
+    const username = localStorage.getItem("antichat_username") || prompt("Username?");
+    const name = localStorage.getItem("antichat_name") || prompt("Name?");
+    localStorage.setItem("antichat_username", username);
+    localStorage.setItem("antichat_name", name);
+
+    async function fetchMessages() {
+      const res = await fetch("/api/messages");
+      const messages = await res.json();
+      chat.innerHTML = "";
+      for (let msg of messages) {
+        const isOwn = msg.username === username;
+        const div = document.createElement("div");
+        div.className = "message" + (isOwn ? " own" : "");
+        div.dataset.id = msg.id;
+
+        let content = `<strong>${msg.name}</strong><br/>`;
+        if (msg.text) content += msg.text;
+        if (msg.fileUrl) {
+          const isImage = /\.(png|jpe?g|gif|webp)$/i.test(msg.fileUrl);
+          if (isImage) {
+            content += `<br><img class="preview" src="${msg.fileUrl}" />`;
+          } else {
+            content += `<br><a href="${msg.fileUrl}" target="_blank">📎 Download file</a>`;
+          }
+        }
+        content += `<small>${new Date(msg.createdAt).toLocaleString()}</small>`;
+
+        div.innerHTML = content;
+
+        if (isOwn) {
+          const actions = document.createElement("div");
+          actions.className = "actions";
+          actions.innerHTML = `
+            <button onclick="editMessage('${msg.id}', '${msg.text || ""}')">✏️ Edit</button>
+            <button onclick="deleteMessage('${msg.id}')">🗑️ Delete</button>`;
+          div.appendChild(actions);
+        }
+
+        chat.appendChild(div);
+      }
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    sendBtn.onclick = async () => {
+      const text = input.value.trim();
+      const file = fileInput.files[0];
+
+      if (!text && !file) return;
+
+      let fileUrl = "";
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        const data = await res.json();
+        if (!data.url) return alert("Upload failed");
+        fileUrl = data.url;
+        fileInput.value = "";
       }
 
-      const response = await fetch(API, {
+      await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, name, text, fileUrl }),
       });
 
-      const result = await response.json();
-      return res.status(201).json({ success: true, message: result });
-    }
+      input.value = "";
+      fetchMessages();
+    };
 
-    // DELETE: Delete message by ID
-    if (method === "DELETE") {
-      const { id } = req.query;
-      if (!id) return res.status(400).json({ error: "Missing message ID" });
-
-      await fetch(`${API}/${id}`, { method: "DELETE" });
-      return res.status(200).json({ success: true });
-    }
-
-    // PUT: Edit message text by ID
-    if (method === "PUT") {
-      const { id } = req.query;
-      const { text } = req.body;
-
-      if (!id || typeof text !== "string" || text.trim() === "") {
-        return res.status(400).json({ error: "Missing or invalid fields" });
+    async function editMessage(id, oldText) {
+      const newText = prompt("Edit your message:", oldText);
+      if (newText !== null && newText !== oldText) {
+        await fetch(`/api/messages?id=${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: newText }),
+        });
+        fetchMessages();
       }
-
-      await fetch(`${API}/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-
-      return res.status(200).json({ success: true });
     }
 
-    // Method not supported
-    return res.status(405).json({ error: "Method Not Allowed" });
+    async function deleteMessage(id) {
+      if (confirm("Are you sure you want to delete this message?")) {
+        await fetch(`/api/messages?id=${id}`, { method: "DELETE" });
+        fetchMessages();
+      }
+    }
 
-  } catch (error) {
-    console.error("API error:", error);
-    return res.status(500).json({ error: "Server error" });
-  }
-}
+    setInterval(fetchMessages, 5000);
+    fetchMessages();
+  </script>
+</body>
+</html>
