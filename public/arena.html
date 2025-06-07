@@ -2,319 +2,155 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AntiChat - Arena</title>
+  <title>AntiChat Arena</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <style>
     body {
-      font-family: monospace, 'Orbitron', monospace;
-      background: #000;
-      color: #00ffcc;
-      margin: 0; padding: 0;
-      display: flex; flex-direction: column; height: 100vh;
+      font-family: monospace;
+      background-color: #0e0e0e;
+      color: #00ff88;
+      margin: 0;
+      padding: 0;
     }
-    #chat {
-      flex-grow: 1;
+    .container {
+      max-width: 600px;
+      margin: auto;
+      padding: 10px;
+    }
+    #messages {
+      border: 1px solid #333;
+      height: 400px;
       overflow-y: auto;
       padding: 10px;
-      border-bottom: 1px solid #00ffcc;
+      background: #1a1a1a;
+      margin-bottom: 10px;
     }
-    #chat div.message {
-      margin-bottom: 12px;
-      border: 1px solid #00ffcc;
-      padding: 5px 10px;
-      border-radius: 8px;
-      max-width: 70%;
-      position: relative;
-      word-wrap: break-word;
+    .msg {
+      margin-bottom: 10px;
     }
-    #chat div.message.own {
-      background: #003333;
-      margin-left: auto;
-      text-align: right;
-    }
-    #chat div.message .meta {
-      font-size: 0.75em;
-      color: #0ff;
-      margin-bottom: 4px;
-    }
-    #chat div.message img {
+    .file-preview {
       max-width: 100%;
-      border-radius: 6px;
-      cursor: pointer;
+      max-height: 200px;
+      border: 1px solid #444;
       margin-top: 5px;
     }
-    #chat div.message button {
-      position: absolute;
-      top: 4px;
-      background: none;
+    input, button {
+      padding: 8px;
+      margin-top: 5px;
       border: none;
-      color: #00ffcc;
+    }
+    input[type="text"], input[type="file"] {
+      width: calc(100% - 10px);
+      margin-bottom: 5px;
+    }
+    button {
+      background: #00ff88;
+      color: black;
       cursor: pointer;
-      font-size: 0.75em;
-      padding: 0 5px;
-    }
-    #chat div.message button.delete-btn {
-      right: 4px;
-    }
-    #chat div.message button.edit-btn {
-      right: 40px;
-    }
-    #input-area {
-      display: flex;
-      padding: 10px;
-      background: #111;
-      border-top: 1px solid #00ffcc;
-    }
-    #input-area input[type="text"] {
-      flex-grow: 1;
-      padding: 10px;
-      border: 1px solid #00ffcc;
-      border-radius: 5px;
-      background: #000;
-      color: #0ff;
-      font-size: 1em;
-      outline: none;
-    }
-    #input-area input[type="file"] {
-      margin-left: 10px;
-      color: #0ff;
-    }
-    #input-area button {
-      margin-left: 10px;
-      background: #00ffcc;
-      border: none;
-      border-radius: 5px;
-      padding: 10px 15px;
-      font-weight: bold;
-      cursor: pointer;
-      color: #000;
-    }
-    #input-area button:hover {
-      background: #00ccaa;
     }
   </style>
 </head>
 <body>
-
-  <div id="chat"></div>
-
-  <div id="input-area">
-    <input type="text" id="messageInput" placeholder="Type your message..." autocomplete="off" />
-    <input type="file" id="fileInput" />
-    <button id="sendBtn">Send</button>
+  <div class="container">
+    <div id="messages"></div>
+    <input id="username" type="text" placeholder="Username" /><br/>
+    <input id="name" type="text" placeholder="Name" /><br/>
+    <input id="message" type="text" placeholder="Type a message..." /><br/>
+    <input id="file" type="file" /><br/>
+    <button onclick="sendMessage()">Send</button>
   </div>
 
   <script>
-    // Get logged user info from localStorage
-    const username = localStorage.getItem("antichat_username");
-    const name = localStorage.getItem("antichat_name");
-    if (!username || !name) {
-      alert("Not logged in! Redirecting to login.");
-      window.location.href = "/chat.html";
-    }
+    async function fetchMessages() {
+      const res = await fetch("/api/messages");
+      const messages = await res.json();
+      const container = document.getElementById("messages");
+      container.innerHTML = "";
 
-    const chat = document.getElementById("chat");
-    const messageInput = document.getElementById("messageInput");
-    const fileInput = document.getElementById("fileInput");
-    const sendBtn = document.getElementById("sendBtn");
+      messages.forEach((msg) => {
+        const div = document.createElement("div");
+        div.className = "msg";
+        div.innerHTML = `<b>${msg.name}:</b> ${msg.text || ""}`;
 
-    // API endpoint for messages
-    const API_MESSAGES = "/api/messages";
-    const API_UPLOAD = "/api/upload";
-
-    // Load messages and refresh every 3 seconds
-    async function loadMessages() {
-      try {
-        const res = await fetch(API_MESSAGES);
-        const data = await res.json();
-        chat.innerHTML = "";
-
-        data.forEach((msg) => {
-          const isOwn = msg.username === username;
-          const msgDiv = document.createElement("div");
-          msgDiv.className = "message" + (isOwn ? " own" : "");
-          msgDiv.dataset.id = msg.id;
-
-          // Meta info (name and username)
-          const meta = document.createElement("div");
-          meta.className = "meta";
-          meta.textContent = `${msg.name} (@${msg.username})`;
-          msgDiv.appendChild(meta);
-
-          // Message text or file
-          if (msg.fileUrl) {
-            const link = document.createElement("a");
-            link.href = msg.fileUrl;
-            link.target = "_blank";
-            link.rel = "noopener noreferrer";
-
-            if (msg.fileUrl.match(/\.(jpeg|jpg|gif|png|svg|webp)$/i)) {
-              const img = document.createElement("img");
-              img.src = msg.fileUrl;
-              img.alt = "Uploaded Image";
-              link.appendChild(img);
-            } else {
-              link.textContent = msg.fileUrl;
-            }
-            msgDiv.appendChild(link);
-          }
-
-          if (msg.text) {
-            const textP = document.createElement("p");
-            textP.textContent = msg.text;
-            msgDiv.appendChild(textP);
-          }
-
-          // Add delete and edit buttons if own message
-          if (isOwn) {
-            const deleteBtn = document.createElement("button");
-            deleteBtn.className = "delete-btn";
-            deleteBtn.textContent = "Delete";
-            deleteBtn.onclick = () => deleteMessage(msg.id);
-            msgDiv.appendChild(deleteBtn);
-
-            const editBtn = document.createElement("button");
-            editBtn.className = "edit-btn";
-            editBtn.textContent = "Edit";
-            editBtn.onclick = () => editMessage(msg.id, msg.text);
-            msgDiv.appendChild(editBtn);
-          }
-
-          chat.appendChild(msgDiv);
-        });
-
-        chat.scrollTop = chat.scrollHeight;
-      } catch (err) {
-        console.error("Load messages error:", err);
-      }
-    }
-
-    // Send message function
-    async function sendMessage() {
-      const text = messageInput.value.trim();
-      const file = fileInput.files[0];
-
-      if (!text && !file) {
-        alert("Type a message or select a file to send.");
-        return;
-      }
-
-      if (file) {
-        // Upload file first
-        const formData = new FormData();
-        formData.append("file", file);
-
-        try {
-          const res = await fetch(API_UPLOAD, {
-            method: "POST",
-            body: formData,
-          });
-          const data = await res.json();
-          if (data.url) {
-            await postMessage("", data.url);
-            messageInput.value = "";
-            fileInput.value = "";
-            loadMessages();
+        if (msg.fileUrl) {
+          const ext = msg.fileUrl.split('.').pop().toLowerCase();
+          if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) {
+            const img = document.createElement("img");
+            img.src = msg.fileUrl;
+            img.className = "file-preview";
+            div.appendChild(img);
           } else {
-            alert("Failed to upload file.");
+            const a = document.createElement("a");
+            a.href = msg.fileUrl;
+            a.innerText = "Download file";
+            a.target = "_blank";
+            div.appendChild(document.createElement("br"));
+            div.appendChild(a);
           }
-        } catch (err) {
-          alert("Upload failed.");
-          console.error(err);
         }
-      } else {
-        await postMessage(text, "");
-        messageInput.value = "";
-        loadMessages();
-      }
-    }
 
-    async function postMessage(text, fileUrl) {
-      try {
-        await fetch(API_MESSAGES, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, name, text, fileUrl }),
-        });
-      } catch (err) {
-        console.error("Send message error:", err);
-      }
-    }
+        const delBtn = document.createElement("button");
+        delBtn.innerText = "❌";
+        delBtn.onclick = async () => {
+          await fetch(`/api/messages?id=${msg.id}`, { method: "DELETE" });
+          fetchMessages();
+        };
 
-    async function deleteMessage(id) {
-      if (!confirm("Delete this message?")) return;
-      try {
-        await fetch(`${API_MESSAGES}?id=${id}`, { method: "DELETE" });
-        loadMessages();
-      } catch (err) {
-        alert("Delete failed.");
-        console.error(err);
-      }
-    }
-
-    // Edit message UI + save
-    function editMessage(id, oldText) {
-      const msgDiv = document.querySelector(`div.message[data-id='${id}']`);
-      if (!msgDiv) return;
-
-      let input = msgDiv.querySelector("input.edit-input");
-      if (input) return; // Already editing
-
-      // Remove text paragraph
-      const p = msgDiv.querySelector("p");
-      if (p) p.style.display = "none";
-
-      input = document.createElement("input");
-      input.type = "text";
-      input.className = "edit-input";
-      input.value = oldText || "";
-      msgDiv.insertBefore(input, msgDiv.querySelector("button.edit-btn"));
-
-      input.focus();
-
-      input.onkeydown = async (e) => {
-        if (e.key === "Enter") {
-          const newText = input.value.trim();
-          if (!newText) {
-            alert("Message cannot be empty.");
-            return;
-          }
-          try {
-            await fetch(`${API_MESSAGES}?id=${id}`, {
+        const editBtn = document.createElement("button");
+        editBtn.innerText = "✏️";
+        editBtn.onclick = async () => {
+          const newText = prompt("Edit your message:", msg.text);
+          if (newText) {
+            await fetch("/api/messages", {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ text: newText }),
+              body: JSON.stringify({ id: msg.id, text: newText }),
             });
-            input.remove();
-            if (p) {
-              p.textContent = newText;
-              p.style.display = "";
-            }
-            loadMessages();
-          } catch (err) {
-            alert("Edit failed.");
-            console.error(err);
+            fetchMessages();
           }
-        }
-        if (e.key === "Escape") {
-          input.remove();
-          if (p) p.style.display = "";
-        }
-      };
+        };
+
+        div.appendChild(delBtn);
+        div.appendChild(editBtn);
+        container.appendChild(div);
+      });
+
+      container.scrollTop = container.scrollHeight;
     }
 
-    sendBtn.addEventListener("click", sendMessage);
+    async function sendMessage() {
+      const username = document.getElementById("username").value;
+      const name = document.getElementById("name").value;
+      const text = document.getElementById("message").value;
+      const fileInput = document.getElementById("file");
 
-    messageInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        sendMessage();
+      let fileUrl = "";
+      if (fileInput.files.length > 0) {
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        const data = await res.json();
+        if (data.url) {
+          fileUrl = data.url;
+        } else {
+          alert("File upload failed");
+          return;
+        }
       }
-    });
 
-    // Initial load and polling every 3 seconds
-    loadMessages();
-    setInterval(loadMessages, 3000);
+      await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, name, text, fileUrl }),
+      });
+
+      document.getElementById("message").value = "";
+      document.getElementById("file").value = "";
+      fetchMessages();
+    }
+
+    fetchMessages();
+    setInterval(fetchMessages, 3000);
   </script>
-
 </body>
 </html>
