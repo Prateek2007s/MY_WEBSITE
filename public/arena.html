@@ -1,82 +1,80 @@
-<!-- public/arena.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>AntiChat Arena</title>
+  <title>Arena - AntiChat</title>
   <style>
     body {
-      margin: 0;
+      background: black;
+      color: #00ffcc;
       font-family: monospace;
-      background-color: #000;
-      color: #0f0;
+      margin: 0;
       display: flex;
       flex-direction: column;
       height: 100vh;
     }
-    #chat-box {
+    #chat {
       flex: 1;
       overflow-y: scroll;
       padding: 10px;
-      border-bottom: 1px solid #0f0;
     }
-    #input-box {
+    #form {
       display: flex;
-      padding: 10px;
+      border-top: 1px solid #00ffcc;
     }
     #msg {
       flex: 1;
       background: #111;
-      color: #0f0;
-      border: 1px solid #0f0;
-      padding: 8px;
+      color: #0ff;
+      border: none;
+      padding: 10px;
     }
-    #send {
-      background: #0f0;
-      color: #000;
-      padding: 8px 16px;
-      margin-left: 5px;
-      cursor: pointer;
+    button {
+      background: #0ff;
+      border: none;
+      padding: 10px;
     }
   </style>
 </head>
 <body>
-  <div id="chat-box"></div>
-  <div id="input-box">
-    <input type="text" id="msg" placeholder="Type a message..." />
-    <button id="send">Send</button>
-  </div>
+  <div id="chat"></div>
+  <form id="form">
+    <input id="msg" autocomplete="off" placeholder="Type a message..." />
+    <button>Send</button>
+  </form>
 
   <script>
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (!user) location.href = "chat.html";
-
-    const msgInput = document.getElementById("msg");
-    const chatBox = document.getElementById("chat-box");
-
-    document.getElementById("send").onclick = async () => {
-      const text = msgInput.value.trim();
-      if (!text) return;
-
-      await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: user.name, text })
-      });
-      msgInput.value = "";
-      loadMessages();
-    };
+    const chat = document.getElementById('chat');
+    const form = document.getElementById('form');
+    const input = document.getElementById('msg');
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user) location.href = '/chat.html';
 
     async function loadMessages() {
       const res = await fetch('/api/messages');
-      const messages = await res.json();
-      chatBox.innerHTML = messages.map(m =>
-        `<div><b>${m.username}:</b> ${m.text}</div>`
-      ).join('');
-      chatBox.scrollTop = chatBox.scrollHeight;
+      const data = await res.json();
+      chat.innerHTML = '';
+      data.forEach(m => {
+        const div = document.createElement('div');
+        div.innerHTML = `<strong>${m.username}</strong>: ${m.text}`;
+        chat.appendChild(div);
+      });
+      chat.scrollTop = chat.scrollHeight;
     }
 
-    setInterval(loadMessages, 2000);
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const text = input.value;
+      if (!text) return;
+      await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user.name, text }),
+      });
+      input.value = '';
+      loadMessages();
+    };
+
+    setInterval(loadMessages, 3000);
     loadMessages();
   </script>
 </body>
