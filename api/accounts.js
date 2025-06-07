@@ -1,35 +1,38 @@
+// api/accounts.js
+import axios from 'axios';
+
 export default async function handler(req, res) {
-  const API = 'https://6842adafe1347494c31d8de0.mockapi.io/api/v1/users';
+  const { method } = req;
 
-  if (req.method !== 'POST') return res.status(405).json({ message: 'Method Not Allowed' });
-
-  const { name, email, password, action } = req.body;
-
-  try {
-    const userReq = await fetch(API);
-    const users = await userReq.json();
-    const existingUser = users.find(u => u.email === email);
-
-    if (action === 'register') {
-      if (existingUser) return res.json({ success: false, message: 'Email already registered.' });
-      const created = await fetch(API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password })
-      });
-      return res.json({ success: true, message: 'Registration successful.' });
-    }
-
-    if (action === 'login') {
-      if (!existingUser || existingUser.password !== password) {
-        return res.json({ success: false, message: 'Invalid email or password.' });
+  if (method === 'POST') {
+    const { name, username, email, password } = req.body;
+    if (req.url.endsWith('/register')) {
+      try {
+        const response = await axios.post('https://6842adafe1347494c31d8de0.mockapi.io/api/v1/users', {
+          name,
+          username,
+          email,
+          password
+        });
+        return res.status(200).json({ message: 'Registered successfully' });
+      } catch (err) {
+        return res.status(500).json({ message: 'Registration failed' });
       }
-      return res.json({ success: true, message: 'Login successful.' });
     }
 
-    return res.status(400).json({ message: 'Invalid action.' });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: 'Server error.' });
+    if (req.url.endsWith('/login')) {
+      try {
+        const response = await axios.get('https://6842adafe1347494c31d8de0.mockapi.io/api/v1/users');
+        const user = response.data.find(u => u.email === email && u.password === password);
+        if (user) {
+          return res.status(200).json({ name: user.name, username: user.username });
+        }
+        return res.status(401).json({ message: 'Invalid credentials' });
+      } catch (err) {
+        return res.status(500).json({ message: 'Login failed' });
+      }
+    }
   }
+
+  return res.status(405).json({ message: 'Method not allowed' });
 }
