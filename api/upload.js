@@ -2,7 +2,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import nextConnect from "next-connect";
 import multer from "multer";
 
-const REGION = "auto";
+const REGION = "auto"; // Cloudflare R2 uses "auto"
 const BUCKET_NAME = "antichat";
 const CLOUDFLARE_ENDPOINT = "https://661c0a29322d276aa333e7722f811e30.r2.cloudflarestorage.com";
 
@@ -16,31 +16,47 @@ const s3Client = new S3Client({
     accessKeyId: ACCESS_KEY_ID,
     secretAccessKey: SECRET_ACCESS_KEY,
   },
-  forcePathStyle: true,
+  forcePathStyle: true, // Required for Cloudflare R2 compatibility
 });
 
+// Disable Next.js default body parser for multipart form data
 export const config = {
   api: { bodyParser: false },
 };
 
+// Setup multer for parsing multipart/form-data (file uploads)
 const upload = multer();
+
 const handler = nextConnect();
+
+// Use multer middleware to handle single file upload with field name "file"
 handler.use(upload.single("file"));
 
 handler.post(async (req, res) => {
   try {
     const file = req.file;
-    if (!file) return res.status(400).json({ error: "No file uploaded" });
+    if (!file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
 
-    const filename = `${Date.now()}_${file.originalname}`;
-    await s3Client.send(new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: filename,
-      Body: file.buffer,
-      ContentType: file.mimetype,
-    }));
+    // Sanitize filename and prepend timestamp for uniqueness
+    const safeFilename = `${Date.now()}_${file.originalname.replace(/\s+/g, "_")}`;
 
-    const publicUrl = `${CLOUDFLARE_ENDPOINT}/${BUCKET_NAME}/${encodeURIComponent(filename)}`;
+    // Upload the file buffer to Cloudflare R2 bucket
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: safeFilename,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+        // ACL is not needed for Cloudflare R2 (optional)
+      })
+    );
+
+    // Construct the public URL to the uploaded file
+    const publicUrl = `${CLOUDFLARE_ENDPOINT}/${BUCKET_NAME}/${encodeURIComponent(safeFilename)}`;
+
+    // Send the URL back to the client
     return res.status(200).json({ url: publicUrl });
   } catch (error) {
     console.error("Upload error:", error);
