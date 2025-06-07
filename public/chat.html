@@ -2,162 +2,157 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AntiChat - Login / Signup</title>
+  <title>AntiChat - Sign In / Sign Up</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: monospace;
-      background-color: #000;
-      color: #0f0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
     .container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px;
-    }
-    .form-box {
-      background-color: #111;
-      padding: 20px;
-      border: 1px solid #0f0;
-      border-radius: 8px;
+      background: #161b22;
+      padding: 2rem;
+      border-radius: 12px;
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
     }
-    .form-box h2 {
+    h2 {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 1rem;
+      color: #58a6ff;
     }
     input {
       width: 100%;
       padding: 10px;
-      margin: 8px 0;
-      background: #000;
-      color: #0f0;
-      border: 1px solid #0f0;
+      margin: 0.4rem 0;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      border-radius: 5px;
     }
     button {
       width: 100%;
       padding: 10px;
-      background: #000;
-      color: #0f0;
-      border: 1px solid #0f0;
-      margin-top: 10px;
+      background: #238636;
+      border: none;
+      color: white;
+      margin-top: 0.6rem;
+      border-radius: 5px;
       cursor: pointer;
     }
-    .switch {
+    button:hover { background: #2ea043; }
+    .toggle {
       text-align: center;
-      margin-top: 10px;
-      cursor: pointer;
-      text-decoration: underline;
+      margin-top: 1rem;
     }
-    .message {
-      text-align: center;
-      margin-top: 10px;
+    .error {
+      color: #ff7b72;
+      font-size: 0.9rem;
+      margin-top: 5px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="form-box" id="signupBox">
-      <h2>Sign Up</h2>
-      <input type="text" id="signupName" placeholder="Full Name" />
-      <input type="text" id="signupUsername" placeholder="Username" />
-      <input type="email" id="signupEmail" placeholder="Email" />
-      <input type="password" id="signupPassword" placeholder="Password" />
-      <input type="password" id="signupConfirm" placeholder="Confirm Password" />
-      <button onclick="handleRegister()">Register</button>
-      <div class="switch" onclick="switchToLogin()">Already have an account? Login</div>
-      <div class="message" id="signupMessage"></div>
+    <h2 id="form-title">Sign Up</h2>
+    <div id="signup-form">
+      <input type="text" id="name" placeholder="Full Name" />
+      <input type="text" id="username" placeholder="Username" />
+      <input type="email" id="email" placeholder="Email" />
+      <input type="password" id="password" placeholder="Password" />
+      <input type="password" id="confirmPassword" placeholder="Confirm Password" />
+      <div class="error" id="error-msg"></div>
+      <button onclick="register()">Register</button>
+      <div class="toggle">Already have an account? <a href="#" onclick="toggleForm()">Login</a></div>
     </div>
 
-    <div class="form-box" id="loginBox" style="display: none;">
-      <h2>Login</h2>
-      <input type="email" id="loginEmail" placeholder="Email" />
+    <div id="login-form" style="display:none;">
+      <input type="text" id="loginEmail" placeholder="Email" />
       <input type="password" id="loginPassword" placeholder="Password" />
-      <button onclick="handleLogin()">Login</button>
-      <div class="switch" onclick="switchToSignup()">Don't have an account? Sign Up</div>
-      <div class="message" id="loginMessage"></div>
+      <div class="error" id="login-error-msg"></div>
+      <button onclick="login()">Login</button>
+      <div class="toggle">Don't have an account? <a href="#" onclick="toggleForm()">Register</a></div>
     </div>
   </div>
 
   <script>
-    function switchToLogin() {
-      document.getElementById('signupBox').style.display = 'none';
-      document.getElementById('loginBox').style.display = 'block';
+    const API_URL = "/api/accounts";
+    function toggleForm() {
+      const isSignup = document.getElementById("signup-form").style.display !== "none";
+      document.getElementById("signup-form").style.display = isSignup ? "none" : "block";
+      document.getElementById("login-form").style.display = isSignup ? "block" : "none";
+      document.getElementById("form-title").textContent = isSignup ? "Login" : "Sign Up";
     }
 
-    function switchToSignup() {
-      document.getElementById('signupBox').style.display = 'block';
-      document.getElementById('loginBox').style.display = 'none';
-    }
-
-    async function handleRegister() {
-      const name = document.getElementById('signupName').value;
-      const username = document.getElementById('signupUsername').value;
-      const email = document.getElementById('signupEmail').value;
-      const password = document.getElementById('signupPassword').value;
-      const confirm = document.getElementById('signupConfirm').value;
-      const msg = document.getElementById('signupMessage');
+    async function register() {
+      const name = document.getElementById("name").value.trim();
+      const username = document.getElementById("username").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const confirm = document.getElementById("confirmPassword").value;
+      const err = document.getElementById("error-msg");
 
       if (!name || !username || !email || !password || !confirm) {
-        msg.textContent = 'Please fill all fields';
+        err.textContent = "All fields are required.";
         return;
       }
+
       if (password !== confirm) {
-        msg.textContent = 'Passwords do not match';
+        err.textContent = "Passwords do not match.";
+        return;
+      }
+
+      if (/\s|#/.test(username)) {
+        err.textContent = "Username cannot contain spaces or '#'";
         return;
       }
 
       try {
-        const res = await fetch('/api/accounts/register', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+        const res = await fetch(`${API_URL}/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, username, email, password })
         });
-
         const data = await res.json();
-        msg.textContent = data.message;
-
-        if (res.status === 200) {
-          switchToLogin();
+        if (res.ok) {
+          localStorage.setItem("username", data.username);
+          window.location.href = "arena.html";
+        } else {
+          err.textContent = data.error || "Registration failed.";
         }
-      } catch (err) {
-        msg.textContent = 'Registration failed.';
+      } catch {
+        err.textContent = "Registration error.";
       }
     }
 
-    async function handleLogin() {
-      const email = document.getElementById('loginEmail').value;
-      const password = document.getElementById('loginPassword').value;
-      const msg = document.getElementById('loginMessage');
-
-      if (!email || !password) {
-        msg.textContent = 'Please fill all fields';
-        return;
-      }
+    async function login() {
+      const email = document.getElementById("loginEmail").value.trim();
+      const password = document.getElementById("loginPassword").value;
+      const err = document.getElementById("login-error-msg");
 
       try {
-        const res = await fetch('/api/accounts/login', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+        const res = await fetch(`${API_URL}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password })
         });
-
         const data = await res.json();
-        msg.textContent = data.message;
-
-        if (res.status === 200) {
-          localStorage.setItem('username', data.username);
-          localStorage.setItem('name', data.name);
-          window.location.href = 'arena.html';
+        if (res.ok) {
+          localStorage.setItem("username", data.username);
+          window.location.href = "arena.html";
+        } else {
+          err.textContent = data.error || "Login failed.";
         }
-      } catch (err) {
-        msg.textContent = 'Login failed.';
+      } catch {
+        err.textContent = "Login error.";
       }
     }
   </script>
