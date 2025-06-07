@@ -27,17 +27,14 @@ export default async function handler(req, res) {
       const { id } = req.query;
       if (!id) return res.status(400).json({ error: "Missing ID" });
 
-      // Permanently delete the message
-      await fetch(`${API}/${id}`, {
-        method: "DELETE",
-      });
-
+      await fetch(`${API}/${id}`, { method: "DELETE" });
       return res.status(200).json({ success: true });
     }
 
     if (req.method === "PUT") {
-      const { id, text } = req.body;
-      if (!id || !text) return res.status(400).json({ error: "Missing ID or text" });
+      const { id } = req.query;
+      const { text } = req.body;
+      if (!id || !text) return res.status(400).json({ error: "Missing fields" });
 
       await fetch(`${API}/${id}`, {
         method: "PUT",
@@ -50,7 +47,7 @@ export default async function handler(req, res) {
 
     return res.status(405).json({ error: "Method Not Allowed" });
   } catch (err) {
-    console.error("Error:", err);
+    console.error(err);
     return res.status(500).json({ error: "Server error" });
   }
 }
