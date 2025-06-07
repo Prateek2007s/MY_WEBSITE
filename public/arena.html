@@ -1,79 +1,101 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Arena - AntiChat</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AntiChat Arena</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <style>
     body {
+      margin: 0;
       background: black;
       color: #00ffcc;
-      font-family: monospace;
-      margin: 0;
+      font-family: 'Share Tech Mono', monospace;
       display: flex;
       flex-direction: column;
       height: 100vh;
     }
     #chat {
       flex: 1;
+      padding: 20px;
       overflow-y: scroll;
-      padding: 10px;
+      border-bottom: 1px solid #00ffcc;
+    }
+    #chat div {
+      margin: 10px 0;
     }
     #form {
       display: flex;
-      border-top: 1px solid #00ffcc;
-    }
-    #msg {
-      flex: 1;
+      padding: 10px;
       background: #111;
+    }
+    #username {
+      display: none;
+    }
+    #message {
+      flex: 1;
+      padding: 10px;
+      background: #222;
       color: #0ff;
       border: none;
-      padding: 10px;
+      border-radius: 5px;
+      margin-right: 10px;
     }
-    button {
-      background: #0ff;
+    #sendBtn {
+      padding: 10px 20px;
+      background: #00ffcc;
+      color: black;
       border: none;
-      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
   <div id="chat"></div>
-  <form id="form">
-    <input id="msg" autocomplete="off" placeholder="Type a message..." />
-    <button>Send</button>
+
+  <form id="form" onsubmit="sendMessage(event)">
+    <input type="text" id="username" readonly />
+    <input type="text" id="message" placeholder="Type your message..." required />
+    <button id="sendBtn">Send</button>
   </form>
 
   <script>
-    const chat = document.getElementById('chat');
-    const form = document.getElementById('form');
-    const input = document.getElementById('msg');
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user) location.href = '/chat.html';
+    const username = prompt("Enter your hacker name:") || "Anonymous";
+    document.getElementById("username").value = username;
+
+    const API = '/api/messages';
+    const chatDiv = document.getElementById("chat");
 
     async function loadMessages() {
-      const res = await fetch('/api/messages');
-      const data = await res.json();
-      chat.innerHTML = '';
-      data.forEach(m => {
-        const div = document.createElement('div');
-        div.innerHTML = `<strong>${m.username}</strong>: ${m.text}`;
-        chat.appendChild(div);
-      });
-      chat.scrollTop = chat.scrollHeight;
+      const res = await fetch(API);
+      const messages = await res.json();
+      chatDiv.innerHTML = messages.map(msg =>
+        `<div><strong>${msg.username}:</strong> ${msg.text}</div>`
+      ).join('');
+      chatDiv.scrollTop = chatDiv.scrollHeight;
     }
 
-    form.onsubmit = async (e) => {
+    async function sendMessage(e) {
       e.preventDefault();
-      const text = input.value;
-      if (!text) return;
-      await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: user.name, text }),
-      });
-      input.value = '';
-      loadMessages();
-    };
+      const message = document.getElementById("message").value.trim();
+      if (!message) return;
 
+      await fetch(API, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          username: username,
+          text: message,
+          createdAt: new Date().toISOString()
+        })
+      });
+
+      document.getElementById("message").value = '';
+      loadMessages();
+    }
+
+    // Polling messages every 3 seconds
     setInterval(loadMessages, 3000);
     loadMessages();
   </script>
