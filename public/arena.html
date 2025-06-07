@@ -4,287 +4,317 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AntiChat - Arena</title>
-  <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet" />
   <style>
     body {
-      margin: 0; font-family: 'Roboto', sans-serif;
-      background: #1c1c1c; color: #e5ddd5;
+      font-family: monospace, 'Orbitron', monospace;
+      background: #000;
+      color: #00ffcc;
+      margin: 0; padding: 0;
       display: flex; flex-direction: column; height: 100vh;
     }
-    header {
-      background: #075e54; padding: 10px 20px;
-      font-weight: bold; font-size: 20px; color: #fff;
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    #userInfo {
-      font-size: 14px; opacity: 0.8;
-    }
-    #messages {
+    #chat {
       flex-grow: 1;
       overflow-y: auto;
       padding: 10px;
-      background: #262d31;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+      border-bottom: 1px solid #00ffcc;
     }
-    .message {
+    #chat div.message {
+      margin-bottom: 12px;
+      border: 1px solid #00ffcc;
+      padding: 5px 10px;
+      border-radius: 8px;
       max-width: 70%;
-      padding: 8px 12px;
-      border-radius: 7px;
       position: relative;
       word-wrap: break-word;
     }
-    .message.own {
-      background: #dcf8c6;
-      color: #000;
-      align-self: flex-end;
+    #chat div.message.own {
+      background: #003333;
+      margin-left: auto;
+      text-align: right;
     }
-    .message.other {
-      background: #333;
-      color: #e5ddd5;
-      align-self: flex-start;
-    }
-    .message .meta {
-      font-size: 11px;
-      color: #888;
+    #chat div.message .meta {
+      font-size: 0.75em;
+      color: #0ff;
       margin-bottom: 4px;
-      font-weight: 600;
     }
-    .message .actions {
-      position: absolute;
-      top: 2px; right: 4px;
-      display: flex; gap: 6px;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-    .message:hover .actions {
-      opacity: 1;
-    }
-    .message .actions button {
-      background: transparent;
-      border: none;
-      color: #555;
+    #chat div.message img {
+      max-width: 100%;
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 14px;
+      margin-top: 5px;
     }
-    footer {
+    #chat div.message button {
+      position: absolute;
+      top: 4px;
+      background: none;
+      border: none;
+      color: #00ffcc;
+      cursor: pointer;
+      font-size: 0.75em;
+      padding: 0 5px;
+    }
+    #chat div.message button.delete-btn {
+      right: 4px;
+    }
+    #chat div.message button.edit-btn {
+      right: 40px;
+    }
+    #input-area {
       display: flex;
       padding: 10px;
-      background: #2a2f32;
+      background: #111;
+      border-top: 1px solid #00ffcc;
     }
-    #messageInput {
+    #input-area input[type="text"] {
       flex-grow: 1;
       padding: 10px;
-      border-radius: 20px;
-      border: none;
-      font-size: 16px;
+      border: 1px solid #00ffcc;
+      border-radius: 5px;
+      background: #000;
+      color: #0ff;
+      font-size: 1em;
       outline: none;
     }
-    #sendBtn, #uploadBtn {
-      background: #128c7e;
-      border: none;
-      color: white;
-      padding: 10px 15px;
-      margin-left: 8px;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    #input-area input[type="file"] {
+      margin-left: 10px;
+      color: #0ff;
     }
-    #uploadInput {
-      display: none;
+    #input-area button {
+      margin-left: 10px;
+      background: #00ffcc;
+      border: none;
+      border-radius: 5px;
+      padding: 10px 15px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #000;
+    }
+    #input-area button:hover {
+      background: #00ccaa;
     }
   </style>
 </head>
 <body>
-  <header>
-    <div>AntiChat Arena</div>
-    <div id="userInfo"></div>
-  </header>
 
-  <div id="messages"></div>
+  <div id="chat"></div>
 
-  <footer>
-    <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off" />
-    <button id="uploadBtn" title="Upload file">📎</button>
-    <input type="file" id="uploadInput" />
-    <button id="sendBtn" title="Send message">➡️</button>
-  </footer>
+  <div id="input-area">
+    <input type="text" id="messageInput" placeholder="Type your message..." autocomplete="off" />
+    <input type="file" id="fileInput" />
+    <button id="sendBtn">Send</button>
+  </div>
 
   <script>
-    const userName = localStorage.getItem('antichat_name') || 'Unknown';
-    const userUsername = localStorage.getItem('antichat_username') || 'unknown';
+    // Get logged user info from localStorage
+    const username = localStorage.getItem("antichat_username");
+    const name = localStorage.getItem("antichat_name");
+    if (!username || !name) {
+      alert("Not logged in! Redirecting to login.");
+      window.location.href = "/chat.html";
+    }
 
-    const messagesDiv = document.getElementById('messages');
-    const messageInput = document.getElementById('messageInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const uploadBtn = document.getElementById('uploadBtn');
-    const uploadInput = document.getElementById('uploadInput');
-    const userInfo = document.getElementById('userInfo');
+    const chat = document.getElementById("chat");
+    const messageInput = document.getElementById("messageInput");
+    const fileInput = document.getElementById("fileInput");
+    const sendBtn = document.getElementById("sendBtn");
 
-    userInfo.textContent = `${userName} (@${userUsername})`;
+    // API endpoint for messages
+    const API_MESSAGES = "/api/messages";
+    const API_UPLOAD = "/api/upload";
 
-    async function fetchMessages() {
+    // Load messages and refresh every 3 seconds
+    async function loadMessages() {
       try {
-        const res = await fetch('/api/messages');
-        if (!res.ok) throw new Error('Failed to fetch messages');
-        const messages = await res.json();
-        renderMessages(messages);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    function renderMessages(messages) {
-      messagesDiv.innerHTML = '';
-      messages.forEach(msg => {
-        const msgEl = document.createElement('div');
-        msgEl.classList.add('message');
-        msgEl.classList.add(msg.username === userUsername ? 'own' : 'other');
-        msgEl.dataset.id = msg.id;
-
-        let content = `<div class="meta">${msg.name} (@${msg.username})</div>`;
-
-        if (msg.fileUrl) {
-          const fileLink = `<a href="${msg.fileUrl}" target="_blank" style="color:inherit; text-decoration: underline;">📎 ${msg.text || 'File'}</a>`;
-          content += fileLink;
-        } else {
-          content += `<div class="text">${escapeHtml(msg.text)}</div>`;
-        }
-
-        msgEl.innerHTML = content;
-
-        // Add actions if own message
-        if (msg.username === userUsername) {
-          const actionsDiv = document.createElement('div');
-          actionsDiv.className = 'actions';
-
-          const editBtn = document.createElement('button');
-          editBtn.title = 'Edit message';
-          editBtn.textContent = '✏️';
-          editBtn.onclick = () => editMessage(msg);
-
-          const delBtn = document.createElement('button');
-          delBtn.title = 'Delete message';
-          delBtn.textContent = '🗑️';
-          delBtn.onclick = () => deleteMessage(msg.id);
-
-          actionsDiv.appendChild(editBtn);
-          actionsDiv.appendChild(delBtn);
-          msgEl.appendChild(actionsDiv);
-        }
-
-        messagesDiv.appendChild(msgEl);
-      });
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
-
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
-    async function sendMessage(text, fileUrl = null) {
-      if (!text && !fileUrl) return;
-      try {
-        const payload = {
-          username: userUsername,
-          name: userName,
-          text,
-          fileUrl
-        };
-        const res = await fetch('/api/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error('Failed to send message');
-        messageInput.value = '';
-        fetchMessages();
-      } catch (e) {
-        alert('Failed to send message');
-        console.error(e);
-      }
-    }
-
-    sendBtn.addEventListener('click', () => {
-      sendMessage(messageInput.value.trim());
-    });
-
-    messageInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage(messageInput.value.trim());
-      }
-    });
-
-    // File upload logic
-    uploadBtn.addEventListener('click', () => uploadInput.click());
-
-    uploadInput.addEventListener('change', async () => {
-      if (!uploadInput.files.length) return;
-      const file = uploadInput.files[0];
-
-      const formData = new FormData();
-      formData.append('file', file);
-
-      try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData
-        });
-        if (!res.ok) throw new Error('Upload failed');
+        const res = await fetch(API_MESSAGES);
         const data = await res.json();
-        await sendMessage(file.name, data.fileUrl);
-        uploadInput.value = '';
-      } catch (e) {
-        alert('Failed to upload file');
-        console.error(e);
-      }
-    });
+        chat.innerHTML = "";
 
-    // Edit message
-    function editMessage(msg) {
-      const newText = prompt('Edit your message:', msg.text);
-      if (newText === null) return;
-      if (newText.trim() === '') {
-        alert('Message cannot be empty');
+        data.forEach((msg) => {
+          const isOwn = msg.username === username;
+          const msgDiv = document.createElement("div");
+          msgDiv.className = "message" + (isOwn ? " own" : "");
+          msgDiv.dataset.id = msg.id;
+
+          // Meta info (name and username)
+          const meta = document.createElement("div");
+          meta.className = "meta";
+          meta.textContent = `${msg.name} (@${msg.username})`;
+          msgDiv.appendChild(meta);
+
+          // Message text or file
+          if (msg.fileUrl) {
+            const link = document.createElement("a");
+            link.href = msg.fileUrl;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+
+            if (msg.fileUrl.match(/\.(jpeg|jpg|gif|png|svg|webp)$/i)) {
+              const img = document.createElement("img");
+              img.src = msg.fileUrl;
+              img.alt = "Uploaded Image";
+              link.appendChild(img);
+            } else {
+              link.textContent = msg.fileUrl;
+            }
+            msgDiv.appendChild(link);
+          }
+
+          if (msg.text) {
+            const textP = document.createElement("p");
+            textP.textContent = msg.text;
+            msgDiv.appendChild(textP);
+          }
+
+          // Add delete and edit buttons if own message
+          if (isOwn) {
+            const deleteBtn = document.createElement("button");
+            deleteBtn.className = "delete-btn";
+            deleteBtn.textContent = "Delete";
+            deleteBtn.onclick = () => deleteMessage(msg.id);
+            msgDiv.appendChild(deleteBtn);
+
+            const editBtn = document.createElement("button");
+            editBtn.className = "edit-btn";
+            editBtn.textContent = "Edit";
+            editBtn.onclick = () => editMessage(msg.id, msg.text);
+            msgDiv.appendChild(editBtn);
+          }
+
+          chat.appendChild(msgDiv);
+        });
+
+        chat.scrollTop = chat.scrollHeight;
+      } catch (err) {
+        console.error("Load messages error:", err);
+      }
+    }
+
+    // Send message function
+    async function sendMessage() {
+      const text = messageInput.value.trim();
+      const file = fileInput.files[0];
+
+      if (!text && !file) {
+        alert("Type a message or select a file to send.");
         return;
       }
-      fetch(`/api/messages?id=${msg.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: newText.trim() })
-      }).then(res => {
-        if (!res.ok) throw new Error('Failed to edit message');
-        fetchMessages();
-      }).catch(e => {
-        alert('Failed to edit message');
-        console.error(e);
-      });
+
+      if (file) {
+        // Upload file first
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+          const res = await fetch(API_UPLOAD, {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json();
+          if (data.url) {
+            await postMessage("", data.url);
+            messageInput.value = "";
+            fileInput.value = "";
+            loadMessages();
+          } else {
+            alert("Failed to upload file.");
+          }
+        } catch (err) {
+          alert("Upload failed.");
+          console.error(err);
+        }
+      } else {
+        await postMessage(text, "");
+        messageInput.value = "";
+        loadMessages();
+      }
     }
 
-    // Delete message
-    function deleteMessage(id) {
-      if (!confirm('Are you sure you want to delete this message?')) return;
-      fetch(`/api/messages?id=${id}`, {
-        method: 'DELETE'
-      }).then(res => {
-        if (!res.ok) throw new Error('Failed to delete message');
-        fetchMessages();
-      }).catch(e => {
-        alert('Failed to delete message');
-        console.error(e);
-      });
+    async function postMessage(text, fileUrl) {
+      try {
+        await fetch(API_MESSAGES, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, name, text, fileUrl }),
+        });
+      } catch (err) {
+        console.error("Send message error:", err);
+      }
     }
+
+    async function deleteMessage(id) {
+      if (!confirm("Delete this message?")) return;
+      try {
+        await fetch(`${API_MESSAGES}?id=${id}`, { method: "DELETE" });
+        loadMessages();
+      } catch (err) {
+        alert("Delete failed.");
+        console.error(err);
+      }
+    }
+
+    // Edit message UI + save
+    function editMessage(id, oldText) {
+      const msgDiv = document.querySelector(`div.message[data-id='${id}']`);
+      if (!msgDiv) return;
+
+      let input = msgDiv.querySelector("input.edit-input");
+      if (input) return; // Already editing
+
+      // Remove text paragraph
+      const p = msgDiv.querySelector("p");
+      if (p) p.style.display = "none";
+
+      input = document.createElement("input");
+      input.type = "text";
+      input.className = "edit-input";
+      input.value = oldText || "";
+      msgDiv.insertBefore(input, msgDiv.querySelector("button.edit-btn"));
+
+      input.focus();
+
+      input.onkeydown = async (e) => {
+        if (e.key === "Enter") {
+          const newText = input.value.trim();
+          if (!newText) {
+            alert("Message cannot be empty.");
+            return;
+          }
+          try {
+            await fetch(`${API_MESSAGES}?id=${id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ text: newText }),
+            });
+            input.remove();
+            if (p) {
+              p.textContent = newText;
+              p.style.display = "";
+            }
+            loadMessages();
+          } catch (err) {
+            alert("Edit failed.");
+            console.error(err);
+          }
+        }
+        if (e.key === "Escape") {
+          input.remove();
+          if (p) p.style.display = "";
+        }
+      };
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+
+    messageInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        sendMessage();
+      }
+    });
 
     // Initial load and polling every 3 seconds
-    fetchMessages();
-    setInterval(fetchMessages, 3000);
+    loadMessages();
+    setInterval(loadMessages, 3000);
   </script>
+
 </body>
 </html>
