@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/api/accounts", "destination": "/api/accounts.js" },
+    { "source": "/api/messages", "destination": "/api/messages.js" }
+  ]
+}
