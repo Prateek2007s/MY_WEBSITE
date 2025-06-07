@@ -1,108 +1,165 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AntiChat - Login/Register</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <style>
-    body {
-      background-color: #0f0f0f;
-      color: #00ff9f;
-      font-family: 'Courier New', monospace;
-    }
-    .panel { display: none; }
-    .active { display: block; }
-    input {
-      background-color: #1a1a1a;
-      border: 1px solid #333;
-      color: #00ff9f;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AntifiedNull Chat - Login & Register</title>
+<style>
+  body {
+    background: #121212;
+    color: #00ff00;
+    font-family: 'Courier New', Courier, monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+  }
+  .container {
+    background: #000;
+    padding: 2em;
+    border: 1px solid #00ff00;
+    border-radius: 8px;
+    width: 320px;
+    box-sizing: border-box;
+  }
+  h2 {
+    text-align: center;
+    margin-bottom: 1em;
+  }
+  input {
+    width: 100%;
+    margin: 8px 0;
+    padding: 0.5em;
+    background: #222;
+    border: 1px solid #00ff00;
+    color: #0f0;
+    font-size: 1em;
+    border-radius: 4px;
+  }
+  button {
+    width: 100%;
+    padding: 0.75em;
+    background: #00ff00;
+    border: none;
+    font-weight: bold;
+    font-size: 1em;
+    color: #000;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-top: 1em;
+  }
+  .toggle {
+    text-align: center;
+    margin-top: 1em;
+    color: #0f0;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  #message {
+    text-align: center;
+    margin-top: 1em;
+    height: 1.5em;
+  }
+</style>
 </head>
-<body class="flex items-center justify-center h-screen">
-  <div class="w-full max-w-md p-6 bg-black shadow-xl rounded-lg space-y-4">
-    <div class="flex justify-center space-x-4 mb-4">
-      <button id="show-login" class="bg-gray-800 px-4 py-2 rounded hover:bg-gray-700">Login</button>
-      <button id="show-register" class="bg-gray-800 px-4 py-2 rounded hover:bg-gray-700">Sign Up</button>
-    </div>
+<body>
 
-    <!-- Login Panel -->
-    <div id="login-panel" class="panel active">
-      <h2 class="text-2xl font-bold mb-2">Login</h2>
-      <input id="login-email" class="w-full p-2 mb-2 rounded" type="email" placeholder="Email" />
-      <input id="login-password" class="w-full p-2 mb-4 rounded" type="password" placeholder="Password" />
-      <button onclick="login()" class="w-full bg-green-600 py-2 rounded hover:bg-green-500">Login</button>
-      <p id="login-error" class="text-red-400 mt-2 text-sm"></p>
-    </div>
+<div class="container">
+  <h2 id="form-title">Sign Up</h2>
+  <input type="text" id="username" placeholder="Username" />
+  <input type="email" id="email" placeholder="Email" />
+  <input type="password" id="password" placeholder="Password" />
+  <input type="password" id="confirmPassword" placeholder="Confirm Password" />
+  <button id="submit-btn">Register</button>
+  <div class="toggle" id="toggle-form">Already have an account? Login</div>
+  <div id="message"></div>
+</div>
 
-    <!-- Register Panel -->
-    <div id="register-panel" class="panel">
-      <h2 class="text-2xl font-bold mb-2">Sign Up</h2>
-      <input id="register-name" class="w-full p-2 mb-2 rounded" type="text" placeholder="Full Name" />
-      <input id="register-username" class="w-full p-2 mb-2 rounded" type="text" placeholder="Username (no spaces or #)" />
-      <input id="register-email" class="w-full p-2 mb-2 rounded" type="email" placeholder="Email" />
-      <input id="register-password" class="w-full p-2 mb-2 rounded" type="password" placeholder="Password" />
-      <input id="register-confirm" class="w-full p-2 mb-4 rounded" type="password" placeholder="Confirm Password" />
-      <button onclick="register()" class="w-full bg-blue-600 py-2 rounded hover:bg-blue-500">Register</button>
-      <p id="register-error" class="text-red-400 mt-2 text-sm"></p>
-    </div>
-  </div>
+<script>
+  const apiUrl = '/api/accounts';
+  let isLogin = false;
 
-  <script>
-    const loginPanel = document.getElementById('login-panel');
-    const registerPanel = document.getElementById('register-panel');
+  const formTitle = document.getElementById('form-title');
+  const usernameInput = document.getElementById('username');
+  const emailInput = document.getElementById('email');
+  const passwordInput = document.getElementById('password');
+  const confirmPasswordInput = document.getElementById('confirmPassword');
+  const submitBtn = document.getElementById('submit-btn');
+  const toggleForm = document.getElementById('toggle-form');
+  const messageBox = document.getElementById('message');
 
-    document.getElementById('show-login').onclick = () => {
-      loginPanel.classList.add('active');
-      registerPanel.classList.remove('active');
-    };
+  function resetForm() {
+    usernameInput.value = '';
+    emailInput.value = '';
+    passwordInput.value = '';
+    confirmPasswordInput.value = '';
+    messageBox.textContent = '';
+  }
 
-    document.getElementById('show-register').onclick = () => {
-      registerPanel.classList.add('active');
-      loginPanel.classList.remove('active');
-    };
+  toggleForm.addEventListener('click', () => {
+    isLogin = !isLogin;
+    if (isLogin) {
+      formTitle.textContent = 'Login';
+      usernameInput.style.display = 'none';
+      confirmPasswordInput.style.display = 'none';
+      submitBtn.textContent = 'Login';
+      toggleForm.textContent = "Don't have an account? Sign Up";
+    } else {
+      formTitle.textContent = 'Sign Up';
+      usernameInput.style.display = 'block';
+      confirmPasswordInput.style.display = 'block';
+      submitBtn.textContent = 'Register';
+      toggleForm.textContent = 'Already have an account? Login';
+    }
+    resetForm();
+  });
 
-    async function register() {
-      const name = document.getElementById('register-name').value;
-      const username = document.getElementById('register-username').value;
-      const email = document.getElementById('register-email').value;
-      const password = document.getElementById('register-password').value;
-      const confirmPassword = document.getElementById('register-confirm').value;
+  submitBtn.addEventListener('click', async () => {
+    messageBox.textContent = '';
+    const username = usernameInput.value.trim();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    const confirmPassword = confirmPasswordInput.value;
 
-      const res = await fetch('/api/accounts/register', {
+    if (!email || !password || (!isLogin && !username)) {
+      messageBox.textContent = 'Please fill in all required fields.';
+      return;
+    }
+
+    if (!isLogin && password !== confirmPassword) {
+      messageBox.textContent = 'Passwords do not match.';
+      return;
+    }
+
+    // Validate username for spaces and #
+    if (!isLogin && (/\s|#/.test(username))) {
+      messageBox.textContent = 'Username cannot contain spaces or #.';
+      return;
+    }
+
+    const action = isLogin ? 'login' : 'register';
+
+    try {
+      const res = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, username, email, password, confirmPassword })
+        body: JSON.stringify({ action, username, email, password }),
       });
 
       const data = await res.json();
-      if (res.ok) {
-        alert("Registration successful!");
-        document.getElementById('show-login').click();
+
+      if (data.success) {
+        localStorage.setItem('chatUser', JSON.stringify(data.user));
+        window.location.href = 'arena.html';
       } else {
-        document.getElementById('register-error').textContent = data.message || "Registration error.";
+        messageBox.textContent = data.message || 'Operation failed.';
       }
+    } catch {
+      messageBox.textContent = 'Server error.';
     }
+  });
+</script>
 
-    async function login() {
-      const email = document.getElementById('login-email').value;
-      const password = document.getElementById('login-password').value;
-
-      const res = await fetch('/api/accounts/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        localStorage.setItem('username', data.user.username);
-        location.href = 'arena.html';
-      } else {
-        document.getElementById('login-error').textContent = data.message || "Login error.";
-      }
-    }
-  </script>
 </body>
 </html>
