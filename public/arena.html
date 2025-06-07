@@ -2,99 +2,80 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>AntiChat Arena</title>
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <title>Arena - AntiChat</title>
   <style>
     body {
+      background: black;
+      color: #0f0;
+      font-family: monospace;
       margin: 0;
-      background: #000;
-      font-family: 'Share Tech Mono', monospace;
-      color: #00ffcc;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
+      padding: 0;
     }
     #chat {
-      flex: 1;
-      padding: 15px;
-      overflow-y: auto;
-      border-bottom: 1px solid #00ffcc;
-    }
-    #chat div {
-      margin: 8px 0;
+      height: 90vh;
+      overflow-y: scroll;
+      padding: 10px;
     }
     #form {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
       display: flex;
-      padding: 10px;
       background: #111;
+      padding: 10px;
     }
-    #message {
+    input {
       flex: 1;
       padding: 10px;
-      background: #222;
-      color: #0ff;
-      border: none;
-      border-radius: 5px;
-      margin-right: 10px;
+      background: black;
+      border: 1px solid #0f0;
+      color: #0f0;
     }
-    #sendBtn {
-      padding: 10px 20px;
-      background: #00ffcc;
-      color: black;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
+    button {
+      padding: 10px;
+      background: #000;
+      border: 1px solid #0f0;
+      color: #0f0;
     }
   </style>
 </head>
 <body>
+  <h2 style="text-align:center">Welcome, <span id="usernameDisplay"></span> 👾</h2>
   <div id="chat"></div>
-
-  <form id="form" onsubmit="sendMessage(event)">
-    <input type="text" id="message" placeholder="Type your message..." required />
-    <button id="sendBtn">Send</button>
-  </form>
+  <div id="form">
+    <input type="text" id="messageInput" placeholder="Type your message..." />
+    <button onclick="sendMessage()">Send</button>
+  </div>
 
   <script>
-    const username = localStorage.getItem("name");
-    if (!username) {
-      alert("You are not logged in. Redirecting...");
-      window.location.href = "chat.html";
-    }
+    const username = localStorage.getItem('username');
+    document.getElementById('usernameDisplay').textContent = username;
 
-    const API = '/api/messages';
-    const chatDiv = document.getElementById("chat");
-
-    async function loadMessages() {
-      const res = await fetch(API);
-      const messages = await res.json();
-      chatDiv.innerHTML = messages.map(msg =>
-        `<div><strong>${msg.username}:</strong> ${msg.text}</div>`
-      ).join('');
-      chatDiv.scrollTop = chatDiv.scrollHeight;
-    }
-
-    async function sendMessage(e) {
-      e.preventDefault();
-      const message = document.getElementById("message").value.trim();
-      if (!message) return;
-
-      await fetch(API, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          username,
-          text: message,
-          createdAt: new Date().toISOString()
-        })
+    async function fetchMessages() {
+      const res = await fetch('/api/messages');
+      const data = await res.json();
+      const chatBox = document.getElementById('chat');
+      chatBox.innerHTML = '';
+      data.forEach(msg => {
+        chatBox.innerHTML += `<div><b>${msg.username}:</b> ${msg.text}</div>`;
       });
-
-      document.getElementById("message").value = '';
-      loadMessages();
+      chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    setInterval(loadMessages, 3000);
-    loadMessages();
+    async function sendMessage() {
+      const text = document.getElementById('messageInput').value;
+      if (!text.trim()) return;
+      await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, text })
+      });
+      document.getElementById('messageInput').value = '';
+      fetchMessages();
+    }
+
+    setInterval(fetchMessages, 1500);
+    fetchMessages();
   </script>
 </body>
 </html>
