@@ -9,15 +9,15 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { username, name, text, fileUrl, fileName } = req.body;
-      if (!username) {
+      const { username, name, text, fileUrl } = req.body;
+      if (!username || (!text && !fileUrl)) {
         return res.status(400).json({ error: 'Invalid message' });
       }
 
       await fetch(API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, name, text: text || '', fileUrl, fileName })
+        body: JSON.stringify({ username, name, text, fileUrl })
       });
 
       return res.status(201).json({ success: true });
@@ -25,10 +25,11 @@ export default async function handler(req, res) {
 
     if (req.method === 'PUT') {
       const { id } = req.query;
-      const { text } = req.body;
-      if (!id || !text) return res.status(400).json({ error: 'Missing id or text' });
+      if (!id) return res.status(400).json({ error: 'Missing ID' });
 
-      // Update message text
+      const { text } = req.body;
+      if (!text) return res.status(400).json({ error: 'Missing text for update' });
+
       await fetch(`${API}/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -42,9 +43,8 @@ export default async function handler(req, res) {
       const { id } = req.query;
       if (!id) return res.status(400).json({ error: 'Missing ID' });
 
-      // HARD delete message instead of editing text
       await fetch(`${API}/${id}`, {
-        method: 'DELETE',
+        method: 'DELETE'
       });
 
       return res.status(200).json({ success: true });
