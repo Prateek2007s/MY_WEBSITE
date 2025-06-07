@@ -1,92 +1,117 @@
-<!-- public/chat.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>AntiChat - Login / Register</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Orbitron&display=swap">
+  <title>AntiChat - Login & Register</title>
   <style>
     body {
-      margin: 0;
-      font-family: Orbitron, monospace;
-      background: #000;
-      color: #0f0;
+      background: black;
+      color: #00ffcc;
+      font-family: monospace;
       display: flex;
       height: 100vh;
       justify-content: center;
       align-items: center;
     }
     .container {
+      width: 400px;
+    }
+    .form {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
       background: #111;
       padding: 20px;
-      border: 2px solid #0f0;
-      border-radius: 10px;
-      width: 300px;
+      border: 1px solid #00ffcc;
+      border-radius: 8px;
     }
-    input, button {
-      width: 100%;
-      margin: 10px 0;
-      padding: 8px;
-      background: #000;
-      color: #0f0;
-      border: 1px solid #0f0;
+    .form.active {
+      display: flex;
     }
-    button:hover {
-      background: #0f0;
-      color: #000;
+    button {
+      background: #00ffcc;
+      border: none;
+      padding: 10px;
+      cursor: pointer;
     }
     .toggle {
       text-align: center;
       margin-top: 10px;
       cursor: pointer;
-      color: #0ff;
+      color: #00ffff;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2 id="form-title">Sign Up</h2>
-    <input type="text" id="name" placeholder="Name" />
-    <input type="email" id="email" placeholder="Email" />
-    <input type="password" id="password" placeholder="Password" />
-    <input type="password" id="confirm" placeholder="Confirm Password" />
-    <button onclick="submitForm()">Submit</button>
-    <div class="toggle" onclick="toggleForm()">Switch to Login</div>
+    <form id="registerForm" class="form">
+      <h2>Register</h2>
+      <input type="text" placeholder="Name" id="regName" required />
+      <input type="email" placeholder="Email" id="regEmail" required />
+      <input type="password" placeholder="Password" id="regPassword" required />
+      <input type="password" placeholder="Confirm Password" id="regConfirm" required />
+      <button type="submit">Sign Up</button>
+      <div class="toggle" onclick="toggleForm('login')">Already have an account?</div>
+    </form>
+
+    <form id="loginForm" class="form active">
+      <h2>Login</h2>
+      <input type="email" placeholder="Email" id="loginEmail" required />
+      <input type="password" placeholder="Password" id="loginPassword" required />
+      <button type="submit">Login</button>
+      <div class="toggle" onclick="toggleForm('register')">Don't have an account?</div>
+    </form>
   </div>
 
   <script>
-    let isLogin = false;
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
 
-    function toggleForm() {
-      isLogin = !isLogin;
-      document.getElementById('form-title').innerText = isLogin ? 'Login' : 'Sign Up';
-      document.getElementById('name').style.display = isLogin ? 'none' : 'block';
-      document.getElementById('confirm').style.display = isLogin ? 'none' : 'block';
+    function toggleForm(type) {
+      if (type === 'login') {
+        registerForm.classList.remove('active');
+        loginForm.classList.add('active');
+      } else {
+        loginForm.classList.remove('active');
+        registerForm.classList.add('active');
+      }
     }
 
-    async function submitForm() {
-      const name = document.getElementById('name').value;
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      const confirm = document.getElementById('confirm').value;
+    registerForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('regName').value;
+      const email = document.getElementById('regEmail').value;
+      const pass = document.getElementById('regPassword').value;
+      const confirm = document.getElementById('regConfirm').value;
+      if (pass !== confirm) return alert("Passwords do not match");
 
-      const endpoint = isLogin ? '/api/accounts/login' : '/api/accounts/register';
-      const body = isLogin ? { email, password } : { name, email, password };
-
-      if (!isLogin && password !== confirm) return alert("Passwords do not match");
-
-      const res = await fetch(endpoint, {
+      const res = await fetch('/api/accounts/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        body: JSON.stringify({ name, email, password: pass }),
       });
-
       const data = await res.json();
-      if (!res.ok) return alert(data.error || "Something went wrong");
+      if (res.ok) {
+        localStorage.setItem('user', JSON.stringify(data));
+        location.href = '/arena.html';
+      } else alert(data.error || "Failed to register");
+    };
 
-      localStorage.setItem("user", JSON.stringify(data));
-      location.href = "arena.html";
-    }
+    loginForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+
+      const res = await fetch('/api/accounts/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('user', JSON.stringify(data));
+        location.href = '/arena.html';
+      } else alert(data.error || "Login failed");
+    };
   </script>
 </body>
 </html>
