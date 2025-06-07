@@ -1,8 +1,10 @@
+
 export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Method Not Allowed' });
+  }
+
   const API = 'https://6842adafe1347494c31d8de0.mockapi.io/api/v1/users';
-
-  if (req.method !== 'POST') return res.status(405).json({ message: 'Method Not Allowed' });
-
   const { name, username, email, password, action } = req.body;
 
   try {

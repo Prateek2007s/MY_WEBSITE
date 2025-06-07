@@ -2,20 +2,13 @@ const API = "https://6842adafe1347494c31d8de0.mockapi.io/api/v1/messages";
 
 export default async function handler(req, res) {
   try {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    if (req.method === "OPTIONS") return res.status(200).end();
-
-    const method = req.method;
-
-    if (method === "GET") {
+    if (req.method === "GET") {
       const response = await fetch(API);
       const data = await response.json();
       return res.status(200).json(data);
     }
 
-    if (method === "POST") {
+    if (req.method === "POST") {
       const { username, name, text, fileUrl } = req.body;
       if (!username || (!text && !fileUrl)) {
         return res.status(400).json({ error: "Missing text or fileUrl" });
@@ -31,15 +24,17 @@ export default async function handler(req, res) {
       return res.status(201).json({ success: true, message: result });
     }
 
-    if (method === "DELETE") {
+    if (req.method === "DELETE") {
       const { id } = req.query;
-      if (!id) return res.status(400).json({ error: "Missing message ID" });
+      if (!id) {
+        return res.status(400).json({ error: "Missing message ID" });
+      }
 
       await fetch(`${API}/${id}`, { method: "DELETE" });
       return res.status(200).json({ success: true });
     }
 
-    if (method === "PUT") {
+    if (req.method === "PUT") {
       const { id } = req.query;
       const { text } = req.body;
       if (!id || typeof text !== "string" || text.trim() === "") {
@@ -57,7 +52,7 @@ export default async function handler(req, res) {
 
     return res.status(405).json({ error: "Method Not Allowed" });
   } catch (error) {
-    console.error("API error:", error.stack || error.message || error);
+    console.error("API error:", error);
     return res.status(500).json({ error: "Server error" });
   }
 }
