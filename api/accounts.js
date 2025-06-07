@@ -1,48 +1,48 @@
-// api/accounts.js
+export default async function handler(req, res) {
+  const API = 'https://6842adafe1347494c31d8de0.mockapi.io/api/v1/users';
 
-import express from 'express'; import fetch from 'node-fetch'; const router = express.Router();
+  if (req.method !== 'POST') return res.status(405).json({ message: 'Method Not Allowed' });
 
-const API_URL = 'https://6842adafe1347494c31d8de0.mockapi.io/api/v1/users';
+  const { name, username, email, password, action } = req.body;
 
-router.post('/', async (req, res) => { const { action, name, username, email, password } = req.body;
+  try {
+    const userReq = await fetch(API);
+    const users = await userReq.json();
 
-if (!email || !password) { return res.json({ success: false, message: 'Email and password are required.' }); }
+    const emailExists = users.find(u => u.email === email);
+    const usernameExists = users.find(u => u.username === username);
 
-try { const response = await fetch(API_URL); const users = await response.json();
+    if (action === 'register') {
+      if (!name || !username || !email || !password) {
+        return res.json({ success: false, message: 'All fields are required.' });
+      }
 
-if (action === 'register') {
-  if (!name || !username) {
-    return res.json({ success: false, message: 'Name and username are required.' });
+      if (/\s|#/.test(username)) {
+        return res.json({ success: false, message: 'Username cannot contain spaces or #' });
+      }
+
+      if (usernameExists) return res.json({ success: false, message: 'Username already taken.' });
+      if (emailExists) return res.json({ success: false, message: 'Email already registered.' });
+
+      await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, username, email, password })
+      });
+
+      return res.json({ success: true, message: 'Registration successful.' });
+    }
+
+    if (action === 'login') {
+      const user = users.find(u => u.email === email && u.password === password);
+      if (!user) return res.json({ success: false, message: 'Invalid email or password.' });
+
+      return res.json({ success: true, message: 'Login successful.', name: user.name, username: user.username });
+    }
+
+    return res.status(400).json({ message: 'Invalid action.' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error.' });
   }
-
-  if (/\s|#/.test(username)) {
-    return res.json({ success: false, message: 'Username cannot contain spaces or #.' });
-  }
-
-  const userExists = users.find(u => u.email === email || u.username === username);
-  if (userExists) {
-    return res.json({ success: false, message: 'User already exists.' });
-  }
-
-  const newUserRes = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, username, email, password })
-  });
-  const newUser = await newUserRes.json();
-  return res.json({ success: true, user: newUser });
-
-} else if (action === 'login') {
-  const user = users.find(u => u.email === email && u.password === password);
-  if (!user) {
-    return res.json({ success: false, message: 'Invalid credentials.' });
-  }
-  return res.json({ success: true, user });
-} else {
-  return res.json({ success: false, message: 'Invalid action.' });
 }
-
-} catch (err) { console.error('Server error:', err); return res.json({ success: false, message: 'Server error.' }); } });
-
-export default router;
-
