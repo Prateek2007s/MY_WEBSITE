@@ -48,19 +48,41 @@
       color: black;
       cursor: pointer;
     }
+    .top-bar {
+      text-align: right;
+      margin-bottom: 10px;
+    }
+    .top-bar button {
+      padding: 6px 12px;
+      background: red;
+      color: white;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
+    <div class="top-bar">
+      <span id="userLabel"></span>
+      <button onclick="logout()">Logout</button>
+    </div>
     <div id="messages"></div>
-    <input id="username" type="text" placeholder="Username" /><br/>
-    <input id="name" type="text" placeholder="Name" /><br/>
     <input id="message" type="text" placeholder="Type a message..." /><br/>
     <input id="file" type="file" /><br/>
     <button onclick="sendMessage()">Send</button>
   </div>
 
   <script>
+    const username = localStorage.getItem("antichat_username");
+    const name = localStorage.getItem("antichat_name");
+
+    if (!username || !name) {
+      alert("You're not logged in!");
+      window.location.href = "/chat.html";
+    }
+
+    document.getElementById("userLabel").innerText = `👤 ${name} (${username})`;
+
     async function fetchMessages() {
       const res = await fetch("/api/messages");
       const messages = await res.json();
@@ -89,29 +111,32 @@
           }
         }
 
-        const delBtn = document.createElement("button");
-        delBtn.innerText = "❌";
-        delBtn.onclick = async () => {
-          await fetch(`/api/messages?id=${msg.id}`, { method: "DELETE" });
-          fetchMessages();
-        };
-
-        const editBtn = document.createElement("button");
-        editBtn.innerText = "✏️";
-        editBtn.onclick = async () => {
-          const newText = prompt("Edit your message:", msg.text);
-          if (newText) {
-            await fetch("/api/messages", {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ id: msg.id, text: newText }),
-            });
+        if (msg.username === username) {
+          const delBtn = document.createElement("button");
+          delBtn.innerText = "❌";
+          delBtn.onclick = async () => {
+            await fetch(`/api/messages?id=${msg.id}`, { method: "DELETE" });
             fetchMessages();
-          }
-        };
+          };
 
-        div.appendChild(delBtn);
-        div.appendChild(editBtn);
+          const editBtn = document.createElement("button");
+          editBtn.innerText = "✏️";
+          editBtn.onclick = async () => {
+            const newText = prompt("Edit your message:", msg.text);
+            if (newText) {
+              await fetch("/api/messages", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: msg.id, text: newText }),
+              });
+              fetchMessages();
+            }
+          };
+
+          div.appendChild(delBtn);
+          div.appendChild(editBtn);
+        }
+
         container.appendChild(div);
       });
 
@@ -119,8 +144,6 @@
     }
 
     async function sendMessage() {
-      const username = document.getElementById("username").value;
-      const name = document.getElementById("name").value;
       const text = document.getElementById("message").value;
       const fileInput = document.getElementById("file");
 
@@ -147,6 +170,11 @@
       document.getElementById("message").value = "";
       document.getElementById("file").value = "";
       fetchMessages();
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = "/chat.html";
     }
 
     fetchMessages();
