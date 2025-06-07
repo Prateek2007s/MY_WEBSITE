@@ -20,9 +20,7 @@ const s3Client = new S3Client({
 });
 
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+  api: { bodyParser: false },
 };
 
 const upload = multer();
@@ -34,19 +32,15 @@ handler.post(async (req, res) => {
     const file = req.file;
     if (!file) return res.status(400).json({ error: "No file uploaded" });
 
-    const filename = Date.now() + "-" + file.originalname;
+    const filename = `${Date.now()}_${file.originalname}`;
+    await s3Client.send(new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: filename,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+    }));
 
-    await s3Client.send(
-      new PutObjectCommand({
-        Bucket: BUCKET_NAME,
-        Key: filename,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-        ACL: "public-read",
-      })
-    );
-
-    const publicUrl = `https://antichat.${CLOUDFLARE_ENDPOINT.split("//")[1]}/${filename}`;
+    const publicUrl = `${CLOUDFLARE_ENDPOINT}/${BUCKET_NAME}/${encodeURIComponent(filename)}`;
     return res.status(200).json({ url: publicUrl });
   } catch (error) {
     console.error("Upload error:", error);
