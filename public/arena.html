@@ -2,183 +2,383 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>AntiChat Arena</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AntiChat - Arena</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet" />
+
   <style>
+    /* Reset & basics */
+    * {
+      box-sizing: border-box;
+    }
     body {
-      font-family: monospace;
-      background-color: #0e0e0e;
-      color: #00ff88;
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
+      font-family: 'Inter', sans-serif;
+      background: #f3f6f8;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
-    .container {
-      max-width: 600px;
+
+    /* Container */
+    .chat-container {
+      max-width: 900px;
       margin: auto;
-      padding: 10px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #ddd;
+      background: white;
+      box-shadow: 0 0 8px rgb(0 0 0 / 0.1);
+      border-radius: 8px;
     }
-    #messages {
-      border: 1px solid #333;
-      height: 400px;
-      overflow-y: auto;
-      padding: 10px;
-      background: #1a1a1a;
-      margin-bottom: 10px;
-    }
-    .msg {
-      margin-bottom: 10px;
-    }
-    .file-preview {
-      max-width: 100%;
-      max-height: 200px;
-      border: 1px solid #444;
-      margin-top: 5px;
-    }
-    input, button {
-      padding: 8px;
-      margin-top: 5px;
-      border: none;
-    }
-    input[type="text"], input[type="file"] {
-      width: calc(100% - 10px);
-      margin-bottom: 5px;
-    }
-    button {
-      background: #00ff88;
-      color: black;
-      cursor: pointer;
-    }
-    .top-bar {
-      text-align: right;
-      margin-bottom: 10px;
-    }
-    .top-bar button {
-      padding: 6px 12px;
-      background: red;
+
+    /* Header */
+    .chat-header {
+      background: #0088cc;
       color: white;
-      font-size: 12px;
+      padding: 14px 20px;
+      font-weight: 600;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+    }
+    .chat-header .user-info {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    /* Messages container */
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px 20px;
+      background: #e7f3fc;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Message bubble */
+    .message {
+      max-width: 70%;
+      padding: 10px 15px;
+      border-radius: 20px;
+      position: relative;
+      font-size: 14px;
+      line-height: 1.4;
+      word-wrap: break-word;
+      box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+    }
+    .message .sender-name {
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 3px;
+      color: #555;
+    }
+    /* Your messages */
+    .message.you {
+      margin-left: auto;
+      background: #dcf8c6;
+      color: #222;
+      border-bottom-right-radius: 4px;
+    }
+    /* Others' messages */
+    .message.other {
+      background: white;
+      color: #333;
+      border-bottom-left-radius: 4px;
+    }
+
+    /* Message time */
+    .message-time {
+      font-size: 10px;
+      color: #999;
+      margin-top: 4px;
+      text-align: right;
+      opacity: 0.6;
+    }
+
+    /* File preview (images & video) */
+    .file-preview {
+      margin-top: 8px;
+      max-width: 100%;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgb(0 0 0 / 0.1);
+      object-fit: contain;
+      transition: transform 0.2s ease;
+    }
+    .file-preview:hover {
+      transform: scale(1.05);
+    }
+    video.file-preview {
+      max-height: 200px;
+    }
+
+    /* Input area */
+    .input-area {
+      display: flex;
+      padding: 10px 15px;
+      background: #f9f9f9;
+      border-top: 1px solid #ddd;
+      align-items: center;
+      gap: 10px;
+      border-bottom-left-radius: 8px;
+      border-bottom-right-radius: 8px;
+    }
+    .input-area input[type="text"] {
+      flex-grow: 1;
+      font-size: 15px;
+      padding: 10px 15px;
+      border-radius: 20px;
+      border: 1px solid #ccc;
+      outline: none;
+      transition: border-color 0.3s ease;
+    }
+    .input-area input[type="text"]:focus {
+      border-color: #0088cc;
+    }
+    .input-area button {
+      background: #0088cc;
+      border: none;
+      color: white;
+      padding: 11px 18px;
+      font-size: 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      user-select: none;
+    }
+    .input-area button:disabled {
+      background: #a0cfe8;
+      cursor: not-allowed;
+    }
+    .input-area button:hover:not(:disabled) {
+      background: #006699;
+    }
+    /* File upload label as icon */
+    .input-area label.file-upload {
+      cursor: pointer;
+      color: #0088cc;
+      font-size: 20px;
+      user-select: none;
+    }
+    .input-area input[type="file"] {
+      display: none;
+    }
+
+    /* Scrollbar styling */
+    .messages::-webkit-scrollbar {
+      width: 8px;
+    }
+    .messages::-webkit-scrollbar-thumb {
+      background-color: rgba(0,0,0,0.1);
+      border-radius: 4px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="top-bar">
-      <span id="userLabel"></span>
-      <button onclick="logout()">Logout</button>
-    </div>
-    <div id="messages"></div>
-    <input id="message" type="text" placeholder="Type a message..." /><br/>
-    <input id="file" type="file" /><br/>
-    <button onclick="sendMessage()">Send</button>
+
+  <div class="chat-container">
+    <header class="chat-header">
+      AntiChat Arena
+      <div class="user-info" id="userInfo">Loading user...</div>
+    </header>
+
+    <main class="messages" id="messages"></main>
+
+    <form id="chatForm" class="input-area" autocomplete="off">
+      <label for="fileInput" class="file-upload" title="Upload File 📎">📎</label>
+      <input type="file" id="fileInput" accept="image/*,video/*,audio/*" />
+      <input type="text" id="messageInput" placeholder="Type a message..." required />
+      <button type="submit" id="sendBtn" disabled>Send</button>
+    </form>
   </div>
 
   <script>
-    const username = localStorage.getItem("antichat_username");
-    const name = localStorage.getItem("antichat_name");
+    // Load user info from localStorage (set during login)
+    const userName = localStorage.getItem("antichat_name") || "Unknown";
+    const userUsername = localStorage.getItem("antichat_username") || "unknown_user";
 
-    if (!username || !name) {
-      alert("You're not logged in!");
-      window.location.href = "/chat.html";
+    document.getElementById("userInfo").textContent = `${userName} (@${userUsername})`;
+
+    const messagesEl = document.getElementById("messages");
+    const chatForm = document.getElementById("chatForm");
+    const messageInput = document.getElementById("messageInput");
+    const fileInput = document.getElementById("fileInput");
+    const sendBtn = document.getElementById("sendBtn");
+
+    // Enable send button only if input or file is present
+    function updateSendButton() {
+      sendBtn.disabled = !(messageInput.value.trim() || fileInput.files.length > 0);
+    }
+    messageInput.addEventListener("input", updateSendButton);
+    fileInput.addEventListener("change", updateSendButton);
+    updateSendButton();
+
+    // Format timestamp to hh:mm (local time)
+    function formatTime(ts) {
+      const d = new Date(ts);
+      return d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     }
 
-    document.getElementById("userLabel").innerText = `👤 ${name} (${username})`;
+    // Create message element HTML
+    function createMessageElement(msg) {
+      const isYou = (msg.username === userUsername);
+      const el = document.createElement("div");
+      el.className = "message " + (isYou ? "you" : "other");
 
-    async function fetchMessages() {
-      const res = await fetch("/api/messages");
-      const messages = await res.json();
-      const container = document.getElementById("messages");
-      container.innerHTML = "";
+      // Sender name for others only
+      if (!isYou) {
+        const sender = document.createElement("div");
+        sender.className = "sender-name";
+        sender.textContent = msg.name || msg.username;
+        el.appendChild(sender);
+      }
 
-      messages.forEach((msg) => {
-        const div = document.createElement("div");
-        div.className = "msg";
-        div.innerHTML = `<b>${msg.name}:</b> ${msg.text || ""}`;
+      // Message text
+      if (msg.text) {
+        const text = document.createElement("div");
+        text.textContent = msg.text;
+        el.appendChild(text);
+      }
 
-        if (msg.fileUrl) {
-          const ext = msg.fileUrl.split('.').pop().toLowerCase();
-          if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) {
-            const img = document.createElement("img");
-            img.src = msg.fileUrl;
-            img.className = "file-preview";
-            div.appendChild(img);
-          } else {
-            const a = document.createElement("a");
-            a.href = msg.fileUrl;
-            a.innerText = "Download file";
-            a.target = "_blank";
-            div.appendChild(document.createElement("br"));
-            div.appendChild(a);
-          }
-        }
-
-        if (msg.username === username) {
-          const delBtn = document.createElement("button");
-          delBtn.innerText = "❌";
-          delBtn.onclick = async () => {
-            await fetch(`/api/messages?id=${msg.id}`, { method: "DELETE" });
-            fetchMessages();
-          };
-
-          const editBtn = document.createElement("button");
-          editBtn.innerText = "✏️";
-          editBtn.onclick = async () => {
-            const newText = prompt("Edit your message:", msg.text);
-            if (newText) {
-              await fetch("/api/messages", {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: msg.id, text: newText }),
-              });
-              fetchMessages();
-            }
-          };
-
-          div.appendChild(delBtn);
-          div.appendChild(editBtn);
-        }
-
-        container.appendChild(div);
-      });
-
-      container.scrollTop = container.scrollHeight;
-    }
-
-    async function sendMessage() {
-      const text = document.getElementById("message").value;
-      const fileInput = document.getElementById("file");
-
-      let fileUrl = "";
-      if (fileInput.files.length > 0) {
-        const formData = new FormData();
-        formData.append("file", fileInput.files[0]);
-        const res = await fetch("/api/upload", { method: "POST", body: formData });
-        const data = await res.json();
-        if (data.url) {
-          fileUrl = data.url;
+      // File preview if any
+      if (msg.fileUrl) {
+        const url = msg.fileUrl;
+        const lower = url.toLowerCase();
+        if (lower.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/)) {
+          const img = document.createElement("img");
+          img.src = url;
+          img.alt = "Image";
+          img.className = "file-preview";
+          img.onclick = () => window.open(url, "_blank");
+          el.appendChild(img);
+        } else if (lower.match(/\.(mp4|webm|ogg)$/)) {
+          const video = document.createElement("video");
+          video.src = url;
+          video.controls = true;
+          video.className = "file-preview";
+          el.appendChild(video);
+        } else if (lower.match(/\.(mp3|wav|ogg)$/)) {
+          const audio = document.createElement("audio");
+          audio.src = url;
+          audio.controls = true;
+          audio.style.marginTop = "8px";
+          el.appendChild(audio);
         } else {
-          alert("File upload failed");
-          return;
+          // Generic file link
+          const link = document.createElement("a");
+          link.href = url;
+          link.target = "_blank";
+          link.textContent = "Download file";
+          el.appendChild(link);
         }
       }
 
-      await fetch("/api/messages", {
+      // Timestamp
+      const time = document.createElement("div");
+      time.className = "message-time";
+      time.textContent = formatTime(msg.createdAt || Date.now());
+      el.appendChild(time);
+
+      return el;
+    }
+
+    // Load messages from backend
+    async function loadMessages() {
+      try {
+        const res = await fetch('/api/messages');
+        if (!res.ok) throw new Error("Failed to fetch messages");
+        const msgs = await res.json();
+
+        // Clear and render
+        messagesEl.innerHTML = "";
+        msgs.forEach(msg => {
+          const msgEl = createMessageElement(msg);
+          messagesEl.appendChild(msgEl);
+        });
+
+        // Scroll bottom smoothly
+        messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: 'smooth' });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Upload file to server and return URL
+    async function uploadFile(file) {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch('/api/upload', {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, name, text, fileUrl }),
+        body: formData
       });
 
-      document.getElementById("message").value = "";
-      document.getElementById("file").value = "";
-      fetchMessages();
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      return data.url;
     }
 
-    function logout() {
-      localStorage.clear();
-      window.location.href = "/chat.html";
+    // Send message with optional file URL
+    async function sendMessage(text, fileUrl = null) {
+      const payload = {
+        username: userUsername,
+        name: userName,
+        text: text || "",
+        fileUrl
+      };
+
+      const res = await fetch('/api/messages', {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error("Failed to send message");
+      return await res.json();
     }
 
-    fetchMessages();
-    setInterval(fetchMessages, 3000);
+    // Handle form submission
+    chatForm.addEventListener("submit", async e => {
+      e.preventDefault();
+
+      const text = messageInput.value.trim();
+      const file = fileInput.files[0];
+
+      sendBtn.disabled = true;
+
+      try {
+        let uploadedUrl = null;
+        if (file) {
+          uploadedUrl = await uploadFile(file);
+        }
+
+        await sendMessage(text, uploadedUrl);
+        messageInput.value = "";
+        fileInput.value = "";
+        updateSendButton();
+        await loadMessages();
+      } catch (err) {
+        alert("Failed to send message: " + err.message);
+      } finally {
+        sendBtn.disabled = false;
+      }
+    });
+
+    // Poll new messages every 3 seconds
+    setInterval(loadMessages, 3000);
+
+    // Initial load
+    loadMessages();
+
   </script>
 </body>
 </html>
