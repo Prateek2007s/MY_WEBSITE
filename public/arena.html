@@ -3,207 +3,287 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>  AntiChat </title>
+<title> AntiChat </title>
 <style>
   body {
-    margin: 0; padding: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #e5ddd5;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
+    margin: 0; background: #e5ddd5;
+    display: flex; flex-direction: column; height: 100vh;
   }
-  #chatContainer {
+  header {
+    background: #075e54;
+    color: white;
+    padding: 10px 20px;
+    font-size: 1.5rem;
+    text-align: center;
+  }
+  #chat-container {
     flex: 1;
     overflow-y: auto;
     padding: 10px;
-    background: #ece5dd;
+    background: #f7f7f7;
+    display: flex;
+    flex-direction: column;
   }
   .message {
     max-width: 70%;
-    margin: 6px 0;
-    padding: 10px;
-    border-radius: 7.5px;
-    clear: both;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    position: relative;
+    font-size: 1rem;
     word-wrap: break-word;
   }
-  .message.you {
-    background-color: #dcf8c6;
-    float: right;
-    text-align: right;
+  .message.self {
+    background: #dcf8c6;
+    align-self: flex-end;
   }
   .message.other {
-    background-color: white;
-    float: left;
-    text-align: left;
+    background: white;
+    align-self: flex-start;
   }
-  .message strong {
-    display: block;
+  .message .meta {
+    font-size: 0.75rem;
+    color: #555;
     margin-bottom: 4px;
-    font-weight: 600;
   }
-  .message small {
-    color: gray;
-    font-size: 10px;
-  }
-  img, video, audio {
-    border-radius: 5px;
-    margin-top: 5px;
-    max-width: 100%;
-  }
-  #inputArea {
+  #input-area {
     display: flex;
     padding: 10px;
-    background: #f0f0f0;
+    background: #fff;
     border-top: 1px solid #ddd;
   }
-  #messageInput {
+  #input-area textarea {
     flex: 1;
-    padding: 10px;
-    font-size: 16px;
+    resize: none;
     border-radius: 20px;
     border: 1px solid #ccc;
+    padding: 8px 12px;
+    font-size: 1rem;
     outline: none;
   }
-  #fileInput {
+  #input-area button, #input-area input[type=file] {
     margin-left: 10px;
-  }
-  #sendBtn {
-    margin-left: 10px;
-    padding: 0 16px;
     border: none;
-    background-color: #128c7e;
+    background: #075e54;
     color: white;
-    border-radius: 20px;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
     cursor: pointer;
   }
-  #sendBtn:disabled {
-    background-color: #bbb;
-    cursor: not-allowed;
+  #input-area input[type=file] {
+    padding: 0;
+  }
+  .preview-container {
+    padding: 5px 15px;
+    background: #fff;
+    border-top: 1px solid #ddd;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .preview-container img,
+  .preview-container video,
+  .preview-container audio {
+    max-height: 80px;
+    border-radius: 10px;
+  }
+  .preview-item {
+    position: relative;
+  }
+  .preview-remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #f44336;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 14px;
+    line-height: 18px;
+    cursor: pointer;
+    text-align: center;
   }
 </style>
 </head>
 <body>
 
-<div id="chatContainer"></div>
+<header>AntiChat Arena</header>
 
-<div id="inputArea">
-  <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off" />
-  <input type="file" id="fileInput" />
-  <button id="sendBtn">Send</button>
+<div id="chat-container"></div>
+
+<div class="preview-container" id="preview-container" style="display:none;"></div>
+
+<div id="input-area">
+  <textarea id="message-input" rows="1" placeholder="Type a message"></textarea>
+  <input type="file" id="file-input" accept="image/*,video/*,audio/*" multiple />
+  <button id="send-btn">➤</button>
 </div>
 
 <script>
-  // Client-side JS inside arena.html
+  const API_MESSAGES = '/api/messages'; // Adjust if your api route differs
+  const R2_ENDPOINT = 'https://661c0a29322d276aa333e7722f811e30.r2.cloudflarestorage.com/antichat';
+  const USERNAME = prompt("Enter your username") || "Anonymous";
 
-  const username = localStorage.getItem('username') || prompt('Enter your username (no spaces or #):');
-  if (!username || username.includes(' ') || username.includes('#')) {
-    alert('Invalid username, reload and enter a valid one.');
-    throw new Error('Invalid username');
-  }
-  localStorage.setItem('username', username);
+  const chatContainer = document.getElementById('chat-container');
+  const messageInput = document.getElementById('message-input');
+  const fileInput = document.getElementById('file-input');
+  const sendBtn = document.getElementById('send-btn');
+  const previewContainer = document.getElementById('preview-container');
 
-  const chatContainer = document.getElementById('chatContainer');
-  const messageInput = document.getElementById('messageInput');
-  const fileInput = document.getElementById('fileInput');
-  const sendBtn = document.getElementById('sendBtn');
+  let selectedFiles = [];
 
-  sendBtn.addEventListener('click', sendMessage);
-  messageInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  });
+  function createMessageElement(msg) {
+    const div = document.createElement('div');
+    div.className = 'message ' + (msg.username === USERNAME ? 'self' : 'other');
 
-  async function sendMessage() {
-    if (sendBtn.disabled) return;
-    sendBtn.disabled = true;
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = `${msg.username} • ${new Date(msg.timestamp).toLocaleTimeString()}`;
+    div.appendChild(meta);
 
-    const file = fileInput.files[0];
-
-    if (file) {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      try {
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (!data.url) throw new Error('Upload failed');
-
-        let type = 'file';
-        if (file.type.startsWith('image/')) type = 'image';
-        else if (file.type.startsWith('video/')) type = 'video';
-        else if (file.type.startsWith('audio/')) type = 'audio';
-
-        await postMessage('', type, data.url);
-        fileInput.value = '';
-      } catch (err) {
-        alert('File upload error: ' + err.message);
-      }
-    } else {
-      const text = messageInput.value.trim();
-      if (!text) {
-        sendBtn.disabled = false;
-        return;
-      }
-      await postMessage(text, 'text', null);
-      messageInput.value = '';
+    if(msg.type === 'text') {
+      const text = document.createElement('div');
+      text.textContent = msg.content;
+      div.appendChild(text);
+    } else if(msg.type === 'image') {
+      const img = document.createElement('img');
+      img.src = msg.fileUrl;
+      img.style.maxWidth = '100%';
+      div.appendChild(img);
+    } else if(msg.type === 'video') {
+      const video = document.createElement('video');
+      video.src = msg.fileUrl;
+      video.controls = true;
+      video.style.maxWidth = '100%';
+      div.appendChild(video);
+    } else if(msg.type === 'audio') {
+      const audio = document.createElement('audio');
+      audio.src = msg.fileUrl;
+      audio.controls = true;
+      div.appendChild(audio);
     }
 
-    await fetchMessages();
-    sendBtn.disabled = false;
-  }
-
-  async function postMessage(content, type, fileUrl) {
-    await fetch('/api/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, content, type, fileUrl }),
-    });
+    return div;
   }
 
   async function fetchMessages() {
-    const res = await fetch('/api/messages');
-    const messages = await res.json();
-    chatContainer.innerHTML = '';
-
-    messages.forEach((msg) => {
-      const div = document.createElement('div');
-      div.classList.add('message');
-      div.classList.add(msg.username === username ? 'you' : 'other');
-
-      let contentHtml = '';
-
-      if (msg.type === 'text') {
-        contentHtml = `<p>${escapeHtml(msg.content)}</p>`;
-      } else if (msg.type === 'image') {
-        contentHtml = `<img src="${msg.fileUrl}" alt="Image" />`;
-      } else if (msg.type === 'video') {
-        contentHtml = `<video controls><source src="${msg.fileUrl}" type="video/mp4" />Your browser does not support the video tag.</video>`;
-      } else if (msg.type === 'audio') {
-        contentHtml = `<audio controls><source src="${msg.fileUrl}" type="audio/mpeg" />Your browser does not support the audio element.</audio>`;
-      } else if (msg.type === 'file') {
-        const fileName = msg.fileUrl.split('/').pop();
-        contentHtml = `<a href="${msg.fileUrl}" target="_blank" download>${fileName}</a>`;
-      }
-
-      div.innerHTML = `<strong>${escapeHtml(msg.username)}</strong>${contentHtml}<br><small>${new Date(msg.timestamp).toLocaleTimeString()}</small>`;
-
-      chatContainer.appendChild(div);
-    });
-
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+    try {
+      const res = await fetch(API_MESSAGES);
+      const data = await res.json();
+      chatContainer.innerHTML = '';
+      data.forEach(msg => {
+        chatContainer.appendChild(createMessageElement(msg));
+      });
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    } catch (err) {
+      console.error('Failed to fetch messages', err);
+    }
   }
 
-  function escapeHtml(text) {
-    return text.replace(/[&<>"']/g, (m) => {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
-    });
+  async function uploadFile(file) {
+    // Here you need to implement upload to your backend which uploads to R2 and returns the URL
+    // This example assumes you have an API endpoint /api/upload that handles uploads
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.url) return data.url;
+      throw new Error('Upload failed');
+    } catch (err) {
+      alert('File upload failed: ' + err.message);
+      return null;
+    }
   }
 
-  setInterval(fetchMessages, 3000);
+  sendBtn.addEventListener('click', async () => {
+    const text = messageInput.value.trim();
+    if(!text && selectedFiles.length === 0) return;
+
+    // Send all files first
+    for (const file of selectedFiles) {
+      const url = await uploadFile(file);
+      if (!url) continue;
+
+      const type = file.type.startsWith('image/') ? 'image' :
+                   file.type.startsWith('video/') ? 'video' :
+                   file.type.startsWith('audio/') ? 'audio' : 'file';
+
+      await fetch(API_MESSAGES, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ username: USERNAME, content: '', type, fileUrl: url }),
+      });
+    }
+    selectedFiles = [];
+    previewContainer.style.display = 'none';
+    previewContainer.innerHTML = '';
+
+    // Send text message if any
+    if(text) {
+      await fetch(API_MESSAGES, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ username: USERNAME, content: text, type: 'text', fileUrl: null }),
+      });
+      messageInput.value = '';
+    }
+
+    fetchMessages();
+  });
+
+  fileInput.addEventListener('change', () => {
+    selectedFiles = Array.from(fileInput.files);
+    previewContainer.innerHTML = '';
+    if(selectedFiles.length) {
+      previewContainer.style.display = 'flex';
+      selectedFiles.forEach(file => {
+        const previewItem = document.createElement('div');
+        previewItem.className = 'preview-item';
+
+        const removeBtn = document.createElement('div');
+        removeBtn.className = 'preview-remove';
+        removeBtn.textContent = '×';
+        removeBtn.onclick = () => {
+          selectedFiles = selectedFiles.filter(f => f !== file);
+          previewItem.remove();
+          if(selectedFiles.length === 0) previewContainer.style.display = 'none';
+        };
+
+        if(file.type.startsWith('image/')) {
+          const img = document.createElement('img');
+          img.src = URL.createObjectURL(file);
+          previewItem.appendChild(img);
+        } else if(file.type.startsWith('video/')) {
+          const video = document.createElement('video');
+          video.src = URL.createObjectURL(file);
+          video.controls = true;
+          previewItem.appendChild(video);
+        } else if(file.type.startsWith('audio/')) {
+          const audio = document.createElement('audio');
+          audio.src = URL.createObjectURL(file);
+          audio.controls = true;
+          previewItem.appendChild(audio);
+        } else {
+          const div = document.createElement('div');
+          div.textContent = file.name;
+          previewItem.appendChild(div);
+        }
+        previewItem.appendChild(removeBtn);
+        previewContainer.appendChild(previewItem);
+      });
+    } else {
+      previewContainer.style.display = 'none';
+    }
+  });
+
+  // Poll messages every 5 seconds
   fetchMessages();
+  setInterval(fetchMessages, 5000);
 </script>
 
 </body>
