@@ -1,5 +1,21 @@
-import formidable from 'formidable';
+import multer from 'multer';
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import crypto from 'crypto';
 
+// Multer setup (in-memory storage)
+const upload = multer({ storage: multer.memoryStorage() });
+
+const s3Client = new S3Client({
+  region: 'auto',
+  endpoint: 'https://661c0a29322d276aa333e7722f811e30.r2.cloudflarestorage.com', // Your R2 endpoint
+  credentials: {
+    accessKeyId: '86aced6ef4797b7760614940295dfbc7', // Your Access Key ID
+    secretAccessKey: '51a8726814bc743276fcf84f6d8c133757ba4a0b59637e889c826fcb58c6a7c3', // Your Secret Access Key
+  },
+  forcePathStyle: false,
+});
+
+// Disable default bodyParser to use multer
 export const config = {
   api: {
     bodyParser: false,
@@ -11,28 +27,43 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const form = new formidable.IncomingForm();
-  form.maxFileSize = 10 * 1024 * 1024; // 10MB max
-
-  form.parse(req, (err, fields, files) => {
+  // Use multer middleware to parse file upload
+  upload.single('file')(req, res, async (err) => {
     if (err) {
-      console.error(err);
-      return res.status(400).json({ error: 'Error parsing the file' });
+      console.error('Multer error:', err);
+      return res.status(400).json({ error: 'File upload failed' });
     }
 
-    const file = files.file; // assuming <input name="file" />
-    if (!file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file provided' });
     }
 
-    // TODO: Save file to storage (Cloudflare R2 or local)
-    // For now, just respond success and file info
+    try {
+      const file = req.file;
 
-    res.status(200).json({
-      success: true,
-      filename: file.originalFilename,
-      size: file.size,
-      mimetype: file.mimetype,
-    });
+      // Generate a random filename with original extension
+      const ext = file.originalname.split('.').pop();
+      const filename = crypto.randomBytes(16).toString('hex') + '.' + ext;
+
+      // Prepare S3 upload params
+      const params = {
+        Bucket: 'antichat', // Your R2 bucket name
+        Key: filename,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+        ACL: 'public-read', // Make file publicly accessible
+      };
+
+      // Upload file to R2
+      await s3Client.send(new PutObjectCommand(params));
+
+      // Construct public URL
+      const fileUrl = `https://661c0a29322d276aa333e7722f811e30.r2.cloudflarestorage.com/antichat/${filename}`;
+
+      return res.status(200).json({ fileUrl });
+    } catch (uploadError) {
+      console.error('Upload error:', uploadError);
+      return res.status(500).json({ error: 'Upload failed' });
+    }
   });
 }
