@@ -1,236 +1,66 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AntiChat Arena</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto&display=swap">
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: 'Roboto', sans-serif;
-      background-color: #1e1e2f;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
-    header {
-      background: #2f3144;
-      padding: 15px;
-      text-align: center;
-      font-weight: bold;
-      font-size: 1.2em;
-      border-bottom: 1px solid #444;
-    }
-    #messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 15px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      background: #12121c;
-    }
-    .message {
-      max-width: 80%;
-      padding: 10px;
-      border-radius: 8px;
-      background: #2a2e45;
-      word-wrap: break-word;
-      position: relative;
-    }
-    .message.self {
-      align-self: flex-end;
-      background: #3e4ba8;
-    }
-    .message img, .message video, .message audio {
-      max-width: 100%;
-      margin-top: 8px;
-      border-radius: 6px;
-    }
-    .meta {
-      font-size: 0.8em;
-      opacity: 0.6;
-      margin-bottom: 4px;
-    }
-    #input-area {
-      display: flex;
-      align-items: center;
-      padding: 10px;
-      background: #2f3144;
-      border-top: 1px solid #444;
-    }
-    #file-label {
-      font-size: 22px;
-      cursor: pointer;
-      margin-right: 10px;
-    }
-    #file-input {
-      display: none;
-    }
-    #input-message {
-      flex: 1;
-      background: #222;
-      color: #fff;
-      padding: 10px;
-      border-radius: 5px;
-      border: none;
-      resize: none;
-      font-size: 1em;
-    }
-    #send-btn {
-      margin-left: 10px;
-      background: #00bfa5;
-      border: none;
-      color: #fff;
-      padding: 10px 16px;
-      font-weight: bold;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    #send-btn:disabled {
-      background: #777;
-      cursor: not-allowed;
-    }
-  </style>
-</head>
-<body>
-  <header>AntiChat Arena</header>
-  <div id="messages"></div>
+const API = "https://6842adafe1347494c31d8de0.mockapi.io/api/v1/messages";
 
-  <div id="input-area">
-    <label for="file-input" id="file-label">&#128206;</label>
-    <input type="file" id="file-input" accept="image/*,video/*,audio/*,.pdf,.zip,.txt" />
-    <textarea id="input-message" placeholder="Type a message..." rows="1"></textarea>
-    <button id="send-btn" disabled>Send</button>
-  </div>
+export default async function handler(req, res) {
+  try {
+    const method = req.method;
 
-  <script>
-    const inputMessage = document.getElementById('input-message');
-    const sendBtn = document.getElementById('send-btn');
-    const fileInput = document.getElementById('file-input');
-    const messagesContainer = document.getElementById('messages');
+    // GET: Fetch all messages
+    if (method === "GET") {
+      const response = await fetch(API);
+      const data = await response.json();
+      return res.status(200).json(data);
+    }
 
-    const userName = localStorage.getItem('antichat_name') || 'Anon';
-    const userUsername = localStorage.getItem('antichat_username') || 'anon';
+    // POST: Send new message
+    if (method === "POST") {
+      const { username, name, text, fileUrl } = req.body;
 
-    function addMessage({ name, text = '', fileUrl = '', username }) {
-      const div = document.createElement('div');
-      div.classList.add('message');
-      if (username === userUsername) div.classList.add('self');
-
-      const meta = document.createElement('div');
-      meta.className = 'meta';
-      meta.innerText = name || 'User';
-
-      div.appendChild(meta);
-
-      if (text) {
-        const textNode = document.createElement('div');
-        textNode.innerText = text;
-        div.appendChild(textNode);
+      if (!username || (!text && !fileUrl)) {
+        return res.status(400).json({ error: "Missing text or fileUrl" });
       }
 
-      if (fileUrl) {
-        const lower = fileUrl.toLowerCase();
-        if (lower.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
-          const img = document.createElement('img');
-          img.src = fileUrl;
-          div.appendChild(img);
-        } else if (lower.match(/\.(mp4|webm)$/)) {
-          const video = document.createElement('video');
-          video.src = fileUrl;
-          video.controls = true;
-          div.appendChild(video);
-        } else if (lower.match(/\.(mp3|wav|ogg)$/)) {
-          const audio = document.createElement('audio');
-          audio.src = fileUrl;
-          audio.controls = true;
-          div.appendChild(audio);
-        } else {
-          const fileLink = document.createElement('a');
-          fileLink.href = fileUrl;
-          fileLink.innerText = "📎 Download file";
-          fileLink.target = "_blank";
-          div.appendChild(fileLink);
-        }
-      }
-
-      messagesContainer.appendChild(div);
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    async function fetchMessages() {
-      const res = await fetch('/api/messages');
-      const messages = await res.json();
-      messagesContainer.innerHTML = '';
-      messages.forEach(addMessage);
-    }
-
-    async function sendMessage({ text = '', fileUrl = '' }) {
-      if (!text && !fileUrl) return;
-      const payload = {
-        username: userUsername,
-        name: userName,
-        text: text.trim(),
-        fileUrl,
-      };
-
-      const res = await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      const response = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, name, text, fileUrl }),
       });
 
-      if (res.ok) {
-        inputMessage.value = '';
-        sendBtn.disabled = true;
-        fetchMessages();
-      } else {
-        alert('Failed to send message');
-      }
+      const result = await response.json();
+      return res.status(201).json({ success: true, message: result });
     }
 
-    inputMessage.addEventListener('input', () => {
-      sendBtn.disabled = inputMessage.value.trim().length === 0;
-    });
+    // DELETE: Delete message by ID
+    if (method === "DELETE") {
+      const { id } = req.query;
+      if (!id) return res.status(400).json({ error: "Missing message ID" });
 
-    sendBtn.addEventListener('click', () => {
-      sendMessage({ text: inputMessage.value });
-    });
+      await fetch(`${API}/${id}`, { method: "DELETE" });
+      return res.status(200).json({ success: true });
+    }
 
-    fileInput.addEventListener('change', async () => {
-      const file = fileInput.files[0];
-      if (!file) return;
+    // PUT: Edit message text by ID
+    if (method === "PUT") {
+      const { id } = req.query;
+      const { text } = req.body;
 
-      const formData = new FormData();
-      formData.append("file", file);
-
-      try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData
-        });
-
-        const data = await res.json();
-        if (data.url) {
-          await sendMessage({ fileUrl: data.url });
-        } else {
-          alert('Upload failed');
-        }
-      } catch (err) {
-        console.error("Upload error", err);
-        alert("Upload failed");
+      if (!id || typeof text !== "string" || text.trim() === "") {
+        return res.status(400).json({ error: "Missing or invalid fields" });
       }
 
-      fileInput.value = '';
-    });
+      await fetch(`${API}/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
 
-    // Initial load
-    fetchMessages();
-    setInterval(fetchMessages, 5000); // Polling
-  </script>
-</body>
-</html>
+      return res.status(200).json({ success: true });
+    }
+
+    // Method not supported
+    return res.status(405).json({ error: "Method Not Allowed" });
+
+  } catch (error) {
+    console.error("API error:", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+}
