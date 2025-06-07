@@ -1,25 +1,24 @@
-// /api/messages.js
-const express = require('express');
-const router = express.Router();
-const fetch = require('node-fetch');
+// api/messages.js
+import axios from 'axios';
 
-const MOCKAPI_BASE = 'https://6842adafe1347494c31d8de0.mockapi.io/api/v1/messages';
+export default async function handler(req, res) {
+  const url = 'https://6842adafe1347494c31d8de0.mockapi.io/api/v1/messages';
 
-router.get('/', async (req, res) => {
-  const r = await fetch(MOCKAPI_BASE);
-  const data = await r.json();
-  res.json(data);
-});
+  if (req.method === 'GET') {
+    const response = await axios.get(url);
+    return res.status(200).json(response.data);
+  }
 
-router.post('/', async (req, res) => {
-  const { username, text, createdAt } = req.body;
-  const r = await fetch(MOCKAPI_BASE, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, text, createdAt })
-  });
-  const data = await r.json();
-  res.json(data);
-});
+  if (req.method === 'POST') {
+    const { username, text } = req.body;
+    const createdAt = new Date().toISOString();
+    try {
+      const response = await axios.post(url, { username, text, createdAt });
+      return res.status(200).json(response.data);
+    } catch (err) {
+      return res.status(500).json({ message: 'Failed to send message' });
+    }
+  }
 
-module.exports = router;
+  return res.status(405).json({ message: 'Method not allowed' });
+}
