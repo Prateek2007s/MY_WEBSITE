@@ -1,128 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AntifiedNull Chat - Login & Register</title>
-<style>
-  body {
-    background: #121212;
-    color: #00ff00;
-    font-family: 'Courier New', Courier, monospace;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-  }
-  .container {
-    background: #000;
-    padding: 2em;
-    border: 1px solid #00ff00;
-    border-radius: 8px;
-    width: 320px;
-    box-sizing: border-box;
-  }
-  h2 {
-    text-align: center;
-    margin-bottom: 1em;
-  }
-  input {
-    width: 100%;
-    margin: 8px 0;
-    padding: 0.5em;
-    background: #222;
-    border: 1px solid #00ff00;
-    color: #0f0;
-    font-size: 1em;
-    border-radius: 4px;
-  }
-  button {
-    width: 100%;
-    padding: 0.75em;
-    background: #00ff00;
-    border: none;
-    font-weight: bold;
-    font-size: 1em;
-    color: #000;
-    cursor: pointer;
-    border-radius: 4px;
-    margin-top: 1em;
-  }
-  .toggle {
-    text-align: center;
-    margin-top: 1em;
-    color: #0f0;
-    cursor: pointer;
-    text-decoration: underline;
-  }
-  #message {
-    text-align: center;
-    margin-top: 1em;
-    height: 1.5em;
-  }
-</style>
-</head>
-<body>
-
-<div class="container">
-  <h2 id="form-title">Sign Up</h2>
-  <input type="text" id="username" placeholder="Username" />
-  <input type="email" id="email" placeholder="Email" />
-  <input type="password" id="password" placeholder="Password" />
-  <input type="password" id="confirmPassword" placeholder="Confirm Password" />
-  <button id="submit-btn">Register</button>
-  <div class="toggle" id="toggle-form">Already have an account? Login</div>
-  <div id="message"></div>
-</div>
+<!-- Add this input inside the container, above username -->
+<input type="text" id="name" placeholder="Full Name" />
 
 <script>
-  const apiUrl = '/api/accounts';
-  let isLogin = false;
-
-  const formTitle = document.getElementById('form-title');
-  const usernameInput = document.getElementById('username');
-  const emailInput = document.getElementById('email');
-  const passwordInput = document.getElementById('password');
-  const confirmPasswordInput = document.getElementById('confirmPassword');
-  const submitBtn = document.getElementById('submit-btn');
-  const toggleForm = document.getElementById('toggle-form');
-  const messageBox = document.getElementById('message');
-
-  function resetForm() {
-    usernameInput.value = '';
-    emailInput.value = '';
-    passwordInput.value = '';
-    confirmPasswordInput.value = '';
-    messageBox.textContent = '';
-  }
-
-  toggleForm.addEventListener('click', () => {
-    isLogin = !isLogin;
-    if (isLogin) {
-      formTitle.textContent = 'Login';
-      usernameInput.style.display = 'none';
-      confirmPasswordInput.style.display = 'none';
-      submitBtn.textContent = 'Login';
-      toggleForm.textContent = "Don't have an account? Sign Up";
-    } else {
-      formTitle.textContent = 'Sign Up';
-      usernameInput.style.display = 'block';
-      confirmPasswordInput.style.display = 'block';
-      submitBtn.textContent = 'Register';
-      toggleForm.textContent = 'Already have an account? Login';
-    }
-    resetForm();
-  });
+  // Inside your submitBtn event listener update validation and request body:
 
   submitBtn.addEventListener('click', async () => {
     messageBox.textContent = '';
+    const name = document.getElementById('name').value.trim();
     const username = usernameInput.value.trim();
     const email = emailInput.value.trim();
     const password = passwordInput.value;
     const confirmPassword = confirmPasswordInput.value;
 
-    if (!email || !password || (!isLogin && !username)) {
+    if (!email || !password || (!isLogin && (!username || !name))) {
       messageBox.textContent = 'Please fill in all required fields.';
       return;
     }
@@ -132,7 +22,6 @@
       return;
     }
 
-    // Validate username for spaces and #
     if (!isLogin && (/\s|#/.test(username))) {
       messageBox.textContent = 'Username cannot contain spaces or #.';
       return;
@@ -144,7 +33,7 @@
       const res = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, username, email, password }),
+        body: JSON.stringify({ action, name, username, email, password }),
       });
 
       const data = await res.json();
@@ -159,7 +48,27 @@
       messageBox.textContent = 'Server error.';
     }
   });
-</script>
 
-</body>
-</html>
+  // Also toggle visibility of #name input in the toggleForm event:
+  toggleForm.addEventListener('click', () => {
+    isLogin = !isLogin;
+    if (isLogin) {
+      formTitle.textContent = 'Login';
+      nameInput.style.display = 'none';
+      usernameInput.style.display = 'none';
+      confirmPasswordInput.style.display = 'none';
+      submitBtn.textContent = 'Login';
+      toggleForm.textContent = "Don't have an account? Sign Up";
+    } else {
+      formTitle.textContent = 'Sign Up';
+      nameInput.style.display = 'block';
+      usernameInput.style.display = 'block';
+      confirmPasswordInput.style.display = 'block';
+      submitBtn.textContent = 'Register';
+      toggleForm.textContent = 'Already have an account? Login';
+    }
+    resetForm();
+  });
+
+  // Make sure to define `const nameInput = document.getElementById('name');`
+</script>
