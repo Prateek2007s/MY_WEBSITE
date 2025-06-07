@@ -1,73 +1,64 @@
-import express from 'express'
-import fetch from 'node-fetch'
+const express = require('express');
+const axios = require('axios');
+const router = express.Router();
 
-const router = express.Router()
-const USERS_API = 'https://6842adafe1347494c31d8de0.mockapi.io/api/v1/users'
+const USERS_API = 'https://6842adafe1347494c31d8de0.mockapi.io/api/v1/users';
 
-// Register a new user
+// Validate username format (no spaces or #)
+function isValidUsername(username) {
+  return /^[^\s#]+$/.test(username);
+}
+
+// Register
 router.post('/register', async (req, res) => {
-  const { name, username, email, password } = req.body
+  const { name, username, email, password, confirmPassword } = req.body;
 
-  if (!name || !username || !email || !password) {
-    return res.status(400).json({ error: 'All fields are required.' })
+  if (!name || !username || !email || !password || !confirmPassword) {
+    return res.status(400).json({ message: 'All fields are required.' });
   }
 
-  if (/\s|#/.test(username)) {
-    return res.status(400).json({ error: 'Username cannot contain spaces or "#"' })
+  if (!isValidUsername(username)) {
+    return res.status(400).json({ message: 'Username cannot contain spaces or #.' });
+  }
+
+  if (password !== confirmPassword) {
+    return res.status(400).json({ message: 'Passwords do not match.' });
   }
 
   try {
-    const usersRes = await fetch(USERS_API)
-    const users = await usersRes.json()
+    const { data: existingUsers } = await axios.get(USERS_API);
+    const alreadyExists = existingUsers.some(user =>
+      user.email === email || user.username === username
+    );
 
-    const existingEmail = users.find(user => user.email === email)
-    const existingUsername = users.find(user => user.username === username)
-
-    if (existingEmail) {
-      return res.status(409).json({ error: 'Email already registered.' })
-    }
-    if (existingUsername) {
-      return res.status(409).json({ error: 'Username already taken.' })
+    if (alreadyExists) {
+      return res.status(400).json({ message: 'Email or username already in use.' });
     }
 
-    const createRes = await fetch(USERS_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, username, email, password })
-    })
-
-    const createdUser = await createRes.json()
-    return res.status(201).json({ username: createdUser.username })
-
+    const newUser = { name, username, email, password };
+    await axios.post(USERS_API, newUser);
+    res.json({ success: true });
   } catch (err) {
-    console.error('Registration error:', err)
-    return res.status(500).json({ error: 'Server error during registration.' })
+    res.status(500).json({ message: 'Registration failed.' });
   }
-})
+});
 
 // Login
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body
-
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required.' })
-  }
+  const { email, password } = req.body;
 
   try {
-    const usersRes = await fetch(USERS_API)
-    const users = await usersRes.json()
+    const { data: users } = await axios.get(USERS_API);
+    const user = users.find(u => u.email === email && u.password === password);
 
-    const user = users.find(u => u.email === email && u.password === password)
-
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials.' })
+    if (user) {
+      res.json({ success: true, user });
+    } else {
+      res.status(401).json({ message: 'Invalid email or password.' });
     }
-
-    return res.json({ username: user.username })
   } catch (err) {
-    console.error('Login error:', err)
-    return res.status(500).json({ error: 'Server error during login.' })
+    res.status(500).json({ message: 'Login failed.' });
   }
-})
+});
 
-export default router
+module.exports = router;
