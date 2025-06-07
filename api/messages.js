@@ -1,26 +1,25 @@
-export default async function handler(req, res) {
-  const API = 'https://6842adafe1347494c31d8de0.mockapi.io/api/v1/messages';
+// /api/messages.js
+const express = require('express');
+const router = express.Router();
+const fetch = require('node-fetch');
 
-  try {
-    if (req.method === 'GET') {
-      const response = await fetch(API);
-      const data = await response.json();
-      return res.status(200).json(data);
-    }
+const MOCKAPI_BASE = 'https://6842adafe1347494c31d8de0.mockapi.io/api/v1/messages';
 
-    if (req.method === 'POST') {
-      const { username, text, createdAt } = req.body;
-      const response = await fetch(API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, text, createdAt })
-      });
-      const data = await response.json();
-      return res.status(201).json(data);
-    }
+router.get('/', async (req, res) => {
+  const r = await fetch(MOCKAPI_BASE);
+  const data = await r.json();
+  res.json(data);
+});
 
-    return res.status(405).json({ message: 'Method not allowed' });
-  } catch (error) {
-    return res.status(500).json({ message: 'Server error', error });
-  }
-}
+router.post('/', async (req, res) => {
+  const { username, text, createdAt } = req.body;
+  const r = await fetch(MOCKAPI_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, text, createdAt })
+  });
+  const data = await r.json();
+  res.json(data);
+});
+
+module.exports = router;
