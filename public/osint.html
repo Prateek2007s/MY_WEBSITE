@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AntiTrace - OSINT Toolkit</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0; padding: 20px;
+      background: #0d0d0d; color: #00ffcc;
+      font-family: 'Orbitron', monospace;
+    }
+    h1, h2 {
+      text-align: center;
+      text-shadow: 0 0 5px #0ff;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      margin-top: 10px;
+      border-radius: 6px;
+      border: none;
+      background: #111;
+      color: #00ffcc;
+    }
+    button {
+      background-color: #00ffcc; color: black; font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover { background: #00ccaa; }
+    .results {
+      margin-top: 30px;
+      padding: 20px;
+      background: #1a1a1a;
+      border-radius: 8px;
+    }
+    .tool { margin: 8px 0; }
+    .tool a {
+      color: #00ffff; text-decoration: none;
+    }
+    .tool a:hover {
+      color: #ff00cc;
+    }
+    .label { font-size: 0.9em; color: #888; }
+    .category-title {
+      margin-top: 25px;
+      border-top: 1px solid #00cccc;
+      padding-top: 15px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🕵️ AntiTrace OSINT Toolkit</h1>
+  <h2>Investigate usernames, emails, IPs & more using free tools</h2>
+
+  <input type="text" id="query" placeholder="e.g. god_antifiednull_x / user@mail.com / +9188888888 / 1.1.1.1" />
+  <label for="category">Optional: Select Category</label>
+  <select id="category">
+    <option value="">Auto Detect</option>
+    <option value="username">Username</option>
+    <option value="email">Email</option>
+    <option value="phone">Phone Number</option>
+    <option value="ip">IP/Domain</option>
+    <option value="image">Image (URL)</option>
+    <option value="social">Social Media</option>
+  </select>
+  <button onclick="runOSINT()">Search</button>
+
+  <div class="results" id="results"></div>
+
+  <script>
+    const tools = {
+      username: [
+        ["WhatsMyName", "https://whatsmyname.app/?q="],
+        ["NameChk", "https://namechk.com/"],
+        ["CheckUsernames", "https://checkusernames.com/"]
+      ],
+      email: [
+        ["Hunter", "https://hunter.io/email-verifier"],
+        ["EmailRep", "https://emailrep.io/"],
+        ["Verify-Email.org", "https://verify-email.org/"]
+      ],
+      phone: [
+        ["Truecaller", "https://www.truecaller.com/search/global/"],
+        ["Sync.me", "https://sync.me/search/"],
+        ["Telegram", "https://t.me/"],
+        ["WhatsApp", "https://wa.me/"]
+      ],
+      ip: [
+        ["IPInfo", "https://ipinfo.io/"],
+        ["AbuseIPDB", "https://www.abuseipdb.com/check/"],
+        ["Whois Lookup", "https://who.is/whois-ip/ip-address/"],
+        ["DNSDumpster", "https://dnsdumpster.com/"],
+        ["BGPView", "https://bgpview.io/ip/"]
+      ],
+      image: [
+        ["Google Reverse", "https://images.google.com/"],
+        ["Yandex Image", "https://yandex.com/images/"],
+        ["Bing Visual", "https://bing.com/visualsearch"],
+        ["DupliChecker", "https://www.duplichecker.com/reverse-image-search.php"],
+        ["EXIF Viewer", "https://www.exif.tools"]
+      ],
+      social: [
+        ["Social Searcher", "https://www.social-searcher.com/"],
+        ["IntelX", "https://intelx.io/"],
+        ["Archive.org", "https://archive.org/web/"],
+        ["BirdHunt (Twitter Location)", "https://birdhunt.cyberdetective.io"],
+        ["Tweeplers", "https://tweeplers.com"],
+        ["Whotwi", "https://whotwi.com"]
+      ],
+      geo: [
+        ["Skylens", "https://apps.skylens.io"],
+        ["PhotoMap VK", "https://photo-map.ru"],
+        ["TrendsMap", "https://trendsmap.com"]
+      ]
+    };
+
+    function detectCategory(query) {
+      if (query.match(/@.+\..+/)) return "email";
+      if (query.match(/^\+?\d{6,}$/)) return "phone";
+      if (query.match(/^(25[0-5]|2[0-4]\d|[01]?\d\d?)\./)) return "ip";
+      if (query.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/)) return "image";
+      return "username";
+    }
+
+    function runOSINT() {
+      const q = document.getElementById("query").value.trim();
+      const encoded = encodeURIComponent(q);
+      const categorySelect = document.getElementById("category").value;
+      const out = document.getElementById("results");
+      out.innerHTML = "";
+
+      if (!q) {
+        out.innerHTML = "<p>Please enter a valid value.</p>";
+        return;
+      }
+
+      const detected = categorySelect || detectCategory(q);
+      out.innerHTML += `<h2>Results for <code>${q}</code> [${detected.toUpperCase()}]</h2>`;
+
+      (tools[detected] || []).forEach(([name, base]) => {
+        const url = base.endsWith("/") || base.includes("=") ? `${base}${encoded}` : base;
+        out.innerHTML += `<div class="tool">🔗 <a href="${url}" target="_blank">${name}</a></div>`;
+      });
+
+      // Additional social & geolocation
+      if (["username", "email", "phone"].includes(detected)) {
+        out.innerHTML += `<div class="category-title">🌐 Social Traces</div>`;
+        tools.social.forEach(([name, url]) => {
+          out.innerHTML += `<div class="tool">🌍 <a href="${url}" target="_blank">${name}</a></div>`;
+        });
+      }
+
+      if (["ip", "image"].includes(detected)) {
+        out.innerHTML += `<div class="category-title">📍 Geolocation & Metadata</div>`;
+        tools.geo.forEach(([name, url]) => {
+          out.innerHTML += `<div class="tool">🗺️ <a href="${url}" target="_blank">${name}</a></div>`;
+        });
+      }
+    }
+  </script>
+
+</body>
+</html>
